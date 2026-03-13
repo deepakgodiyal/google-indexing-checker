@@ -287,6 +287,7 @@ function ResultsTable({ results, filter, setFilter }) {
       case 'Dofollow': return 'dofollow';
       case 'Nofollow': return 'nofollow';
       case 'Checking...': return 'checking';
+      case 'N/A': return 'na-status';
       default: return 'error';
     }
   };
@@ -401,6 +402,115 @@ async function exportExcel(results) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Index Results');
   XLSX.writeFile(workbook, `index-check-results-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ==========================================
+// CLIENT-SIDE FOLLOW CHECK (Fallback for Error)
+// Uses CORS proxy to fetch HTML from browser
+// when Vercel server can't reach the site
+// ==========================================
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+];
+
+async function clientSideFollowCheck(url) {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const proxyUrl = proxy + encodeURIComponent(url);
+      const response = await fetch(proxyUrl, {
+        signal: AbortSignal.timeout(20000),
+      });
+
+      if (!response.ok) continue;
+
+      const html = await response.text();
+
+      // Parse HTML using DOMParser (browser API)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      // Check 1: Meta robots nofollow
+      const metaRobots = doc.querySelector('meta[name="robots"]');
+      if (metaRobots) {
+        const content = (metaRobots.getAttribute('content') || '').toLowerCase();
+        if (content.includes('nofollow')) {
+          return 'Nofollow';
+        }
+      }
+
+      // Check 2: Googlebot meta nofollow
+      const metaGooglebot = doc.querySelector('meta[name="googlebot"]');
+      if (metaGooglebot) {
+        const content = (metaGooglebot.getAttribute('content') || '').toLowerCase();
+        if (content.includes('nofollow')) {
+          return 'Nofollow';
+        }
+      }
+
+      // Check 3: Content area links
+      const contentSelectors = [
+        'article', '.post-content', '.blog-content', '.entry-content',
+        '.post-body', '.blog-body', '.article-content', '.article-body',
+        '.read-content', '.read-blog', '.blog-post', '.post-text',
+        '.main-content', '[itemprop="articleBody"]', '[itemprop="text"]',
+        '.post', '.entry', 'main',
+      ];
+
+      // Get page domain
+      let pageDomain = '';
+      try { pageDomain = new URL(url).hostname.replace('www.', ''); } catch {}
+
+      // Try content area first
+      let contentEl = null;
+      for (const sel of contentSelectors) {
+        const el = doc.querySelector(sel);
+        if (el && el.textContent.trim().length > 100) {
+          contentEl = el;
+          break;
+        }
+      }
+
+      const container = contentEl || doc.body;
+      const allLinks = container.querySelectorAll('a[href]');
+      let totalOutbound = 0;
+      let nofollowCount = 0;
+
+      allLinks.forEach((link) => {
+        const href = link.getAttribute('href') || '';
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
+
+        let linkDomain = '';
+        try {
+          if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+            const fullUrl = href.startsWith('//') ? 'https:' + href : href;
+            linkDomain = new URL(fullUrl).hostname.replace('www.', '');
+          } else {
+            return; // relative = internal
+          }
+        } catch { return; }
+
+        if (linkDomain === pageDomain) return;
+
+        totalOutbound++;
+        const rel = (link.getAttribute('rel') || '').toLowerCase();
+        if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
+          nofollowCount++;
+        }
+      });
+
+      if (totalOutbound > 0) {
+        const nofollowPct = (nofollowCount / totalOutbound) * 100;
+        return nofollowPct > 50 ? 'Nofollow' : 'Dofollow';
+      }
+
+      return 'Dofollow'; // No outbound links found
+    } catch {
+      continue; // Try next proxy
+    }
+  }
+
+  return null; // All proxies failed
 }
 
 // ==========================================
@@ -519,6 +629,31 @@ export default function Home() {
       setResults([...updatedResults]);
       setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking follow status...' });
       if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
+    }
+
+    // PHASE 3: Client-side fallback for URLs that got "Error"
+    const errorUrls = updatedResults
+      .map((r, idx) => ({ ...r, idx }))
+      .filter((r) => r.followStatus === 'Error');
+
+    if (errorUrls.length > 0) {
+      setProgress({ current: 0, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
+
+      for (let i = 0; i < errorUrls.length; i++) {
+        const { url, idx } = errorUrls[i];
+        try {
+          const result = await clientSideFollowCheck(url);
+          if (result) {
+            updatedResults[idx] = { ...updatedResults[idx], followStatus: result };
+          } else {
+            updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+          }
+        } catch {
+          updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+        }
+        setResults([...updatedResults]);
+        setProgress({ current: i + 1, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
+      }
     }
 
     setIsChecking(false);

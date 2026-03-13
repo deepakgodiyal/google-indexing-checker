@@ -667,6 +667,15 @@ body {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
+.status-badge.na-status {
+  background: rgba(120, 120, 120, 0.1);
+  color: #888;
+}
+
+.status-dot.na-status {
+  background: #888;
+}
+
 .status-dot.dofollow {
   background: #2196f3;
 }
