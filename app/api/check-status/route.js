@@ -1,8 +1,8 @@
 // ============================================
 // HTTP Status Code Checker - API Route
 // ============================================
-// Fetches each URL and returns the HTTP status code
-// Uses HEAD request first (faster), falls back to GET
+// Follows ALL redirects and returns FINAL status code
+// e.g. URL → 302 → 302 → 404 = shows "404 Not Found"
 // ============================================
 
 // Allow up to 60 seconds on Vercel (Hobby plan max)
@@ -18,26 +18,29 @@ function getRandomUserAgent() {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
-function getStatusLabel(code) {
-  if (code >= 200 && code < 300) return `${code} OK`;
-  if (code === 301) return '301 Redirect';
-  if (code === 302) return '302 Temp Redirect';
-  if (code === 303) return '303 See Other';
-  if (code === 307) return '307 Temp Redirect';
-  if (code === 308) return '308 Permanent Redirect';
-  if (code === 400) return '400 Bad Request';
-  if (code === 401) return '401 Unauthorized';
-  if (code === 403) return '403 Forbidden';
-  if (code === 404) return '404 Not Found';
-  if (code === 410) return '410 Gone';
-  if (code === 429) return '429 Too Many Requests';
-  if (code === 500) return '500 Server Error';
-  if (code === 502) return '502 Bad Gateway';
-  if (code === 503) return '503 Unavailable';
-  if (code >= 300 && code < 400) return `${code} Redirect`;
-  if (code >= 400 && code < 500) return `${code} Client Error`;
-  if (code >= 500) return `${code} Server Error`;
-  return `${code}`;
+function getStatusLabel(code, wasRedirected) {
+  let label = '';
+  if (code >= 200 && code < 300) label = `${code} OK`;
+  else if (code === 301) label = '301 Redirect';
+  else if (code === 302) label = '302 Temp Redirect';
+  else if (code === 303) label = '303 See Other';
+  else if (code === 307) label = '307 Temp Redirect';
+  else if (code === 308) label = '308 Permanent Redirect';
+  else if (code === 400) label = '400 Bad Request';
+  else if (code === 401) label = '401 Unauthorized';
+  else if (code === 403) label = '403 Forbidden';
+  else if (code === 404) label = '404 Not Found';
+  else if (code === 410) label = '410 Gone';
+  else if (code === 429) label = '429 Too Many Requests';
+  else if (code === 500) label = '500 Server Error';
+  else if (code === 502) label = '502 Bad Gateway';
+  else if (code === 503) label = '503 Unavailable';
+  else if (code >= 300 && code < 400) label = `${code} Redirect`;
+  else if (code >= 400 && code < 500) label = `${code} Client Error`;
+  else if (code >= 500) label = `${code} Server Error`;
+  else label = `${code}`;
+
+  return label;
 }
 
 function getStatusCategory(code) {
@@ -50,37 +53,48 @@ function getStatusCategory(code) {
 
 async function checkStatusCode(url) {
   try {
-    // Try HEAD request first (faster, no body download)
+    // Strategy: Follow redirects to get FINAL status code
     let response;
+
+    // Try GET request with redirect: 'follow' to get final status
     try {
-      response = await fetch(url, {
-        method: 'HEAD',
-        headers: {
-          'User-Agent': getRandomUserAgent(),
-          'Accept': '*/*',
-        },
-        signal: AbortSignal.timeout(10000),
-        redirect: 'manual', // Don't auto-follow redirects - we want to see 301/302
-      });
-    } catch {
-      // HEAD failed, try GET
       response = await fetch(url, {
         method: 'GET',
         headers: {
           'User-Agent': getRandomUserAgent(),
-          'Accept': 'text/html,*/*',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         },
         signal: AbortSignal.timeout(15000),
-        redirect: 'manual',
+        redirect: 'follow', // Follow all redirects, get FINAL page status
       });
+    } catch (fetchError) {
+      // If GET fails completely, try HEAD
+      try {
+        response = await fetch(url, {
+          method: 'HEAD',
+          headers: {
+            'User-Agent': getRandomUserAgent(),
+            'Accept': '*/*',
+          },
+          signal: AbortSignal.timeout(10000),
+          redirect: 'follow',
+        });
+      } catch {
+        throw fetchError;
+      }
     }
 
     const code = response.status;
+    const wasRedirected = response.redirected || false;
+    const finalUrl = response.url || url;
+
     return {
       url,
       statusCode: code,
-      statusLabel: getStatusLabel(code),
+      statusLabel: getStatusLabel(code, wasRedirected),
       category: getStatusCategory(code),
+      redirected: wasRedirected,
+      finalUrl: wasRedirected ? finalUrl : null,
     };
   } catch (error) {
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
