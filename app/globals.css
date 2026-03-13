@@ -684,6 +684,43 @@ body {
   background: #9c27b0;
 }
 
+/* HTTP Status Code Badge Colors */
+.status-badge.status-2xx {
+  background: rgba(0, 200, 83, 0.1);
+  color: #00c853;
+}
+
+.status-dot.status-2xx {
+  background: #00c853;
+}
+
+.status-badge.status-3xx {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+
+.status-dot.status-3xx {
+  background: #ff9800;
+}
+
+.status-badge.status-4xx {
+  background: rgba(255, 23, 68, 0.1);
+  color: #ff1744;
+}
+
+.status-dot.status-4xx {
+  background: #ff1744;
+}
+
+.status-badge.status-5xx {
+  background: rgba(183, 28, 28, 0.1);
+  color: #b71c1c;
+}
+
+.status-dot.status-5xx {
+  background: #b71c1c;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }

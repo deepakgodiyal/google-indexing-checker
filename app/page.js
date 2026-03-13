@@ -292,6 +292,16 @@ function ResultsTable({ results, filter, setFilter }) {
     }
   };
 
+  const getStatusCodeClass = (statusCode) => {
+    if (!statusCode || statusCode === 'Checking...') return 'checking';
+    if (statusCode === 'Error' || statusCode === 'Timeout') return 'error';
+    if (statusCode.startsWith('2')) return 'status-2xx';
+    if (statusCode.startsWith('3')) return 'status-3xx';
+    if (statusCode.startsWith('4')) return 'status-4xx';
+    if (statusCode.startsWith('5')) return 'status-5xx';
+    return 'error';
+  };
+
   return (
     <div className="results-card">
       <div className="results-header">
@@ -314,6 +324,7 @@ function ResultsTable({ results, filter, setFilter }) {
             <tr>
               <th>#</th>
               <th>URL</th>
+              <th>Status Code</th>
               <th>Index Status</th>
               <th>Follow Status</th>
               <th>Google Search</th>
@@ -322,7 +333,7 @@ function ResultsTable({ results, filter, setFilter }) {
           <tbody>
             {filteredResults.length === 0 ? (
               <tr>
-                <td colSpan="5">
+                <td colSpan="6">
                   <div className="empty-state"><p>No results to display for this filter.</p></div>
                 </td>
               </tr>
@@ -331,6 +342,12 @@ function ResultsTable({ results, filter, setFilter }) {
                 <tr key={result.url + index}>
                   <td className="row-number">{index + 1}</td>
                   <td className="url-cell" title={result.url}>{result.url}</td>
+                  <td>
+                    <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
+                      <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
+                      {result.statusCode || 'Checking...'}
+                    </span>
+                  </td>
                   <td>
                     <span className={`status-badge ${getStatusClass(result.status)}`}>
                       <span className={`status-dot ${getStatusClass(result.status)}`}></span>
@@ -373,9 +390,9 @@ function Footer() {
 // CSV EXPORT
 // ==========================================
 function exportCSV(results) {
-  const header = 'URL,Index Status,Follow Status,Google Search Link\n';
+  const header = 'URL,Status Code,Index Status,Follow Status,Google Search Link\n';
   const rows = results.map((r) =>
-    `"${r.url}","${r.status}","${r.followStatus || 'N/A'}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`
+    `"${r.url}","${r.statusCode || 'N/A'}","${r.status}","${r.followStatus || 'N/A'}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`
   ).join('\n');
   const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
@@ -395,12 +412,13 @@ async function exportExcel(results) {
     const data = results.map((r, i) => ({
       '#': i + 1,
       'URL': r.url,
+      'Status Code': r.statusCode || 'N/A',
       'Index Status': r.status,
       'Follow Status': r.followStatus || 'N/A',
       'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
     }));
     const worksheet = XLSX.utils.json_to_sheet(data);
-    worksheet['!cols'] = [{ wch: 5 }, { wch: 60 }, { wch: 15 }, { wch: 15 }, { wch: 70 }];
+    worksheet['!cols'] = [{ wch: 5 }, { wch: 60 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 70 }];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Index Results');
     XLSX.writeFile(workbook, `index-check-results-${new Date().toISOString().split('T')[0]}.xlsx`);
@@ -583,7 +601,7 @@ export default function Home() {
     setFilter('all');
     setProgress({ current: 0, total: urlList.length, phase: 'Checking index status...' });
 
-    const initialResults = urlList.map((url) => ({ url, status: 'Checking...', followStatus: 'Checking...' }));
+    const initialResults = urlList.map((url) => ({ url, status: 'Checking...', followStatus: 'Checking...', statusCode: 'Checking...' }));
     setResults(initialResults);
 
     const BATCH_SIZE = 5;
@@ -641,7 +659,36 @@ export default function Home() {
       if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
     }
 
-    // PHASE 3: Client-side fallback for URLs that got "Error"
+    // PHASE 3: HTTP Status Code
+    setProgress({ current: 0, total: urlList.length, phase: 'Checking HTTP status codes...' });
+    for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
+      const batch = urlList.slice(i, i + BATCH_SIZE);
+      try {
+        const response = await fetch('/api/check-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls: batch }),
+        });
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const data = await response.json();
+        data.results.forEach((result, idx) => {
+          updatedResults[i + idx] = {
+            ...updatedResults[i + idx],
+            statusCode: result.statusLabel || 'Error',
+            statusCategory: result.category || 'error',
+          };
+        });
+      } catch (err) {
+        batch.forEach((url, idx) => {
+          updatedResults[i + idx] = { ...updatedResults[i + idx], statusCode: 'Error', statusCategory: 'error' };
+        });
+      }
+      setResults([...updatedResults]);
+      setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking HTTP status codes...' });
+      if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
+    }
+
+    // PHASE 4: Client-side fallback for URLs that got "Error"
     const errorUrls = updatedResults
       .map((r, idx) => ({ ...r, idx }))
       .filter((r) => r.followStatus === 'Error');
