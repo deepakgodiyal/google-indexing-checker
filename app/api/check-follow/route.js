@@ -4,9 +4,10 @@ import * as cheerio from 'cheerio';
 // Dofollow / Nofollow Checker - API Route
 // ============================================
 // Fetches each URL and checks:
-// 1. <meta name="robots" content="nofollow"> tag
-// 2. X-Robots-Tag header for nofollow
-// 3. Overall page follow status
+// 1. X-Robots-Tag header for nofollow
+// 2. <meta name="robots" content="nofollow"> tag
+// 3. <meta name="googlebot" content="nofollow"> tag
+// 4. rel="nofollow" / rel="ugc" / rel="sponsored" on <a> tags
 // ============================================
 
 const USER_AGENTS = [
@@ -17,6 +18,15 @@ const USER_AGENTS = [
 
 function getRandomUserAgent() {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+// Extract domain from URL
+function getDomain(url) {
+  try {
+    return new URL(url).hostname.replace('www.', '');
+  } catch {
+    return '';
+  }
 }
 
 async function checkFollowStatus(url) {
@@ -73,8 +83,70 @@ async function checkFollowStatus(url) {
       return { url, followStatus: 'Nofollow', source };
     }
 
-    // If none of the above, page is Dofollow (default)
-    return { url, followStatus: 'Dofollow', source: 'Default (no nofollow found)' };
+    // Check 4: Check rel="nofollow" on actual <a> tags (outbound links)
+    const pageDomain = getDomain(url);
+    let totalOutboundLinks = 0;
+    let nofollowLinks = 0;
+
+    $('a[href]').each((_, el) => {
+      const href = $(el).attr('href') || '';
+
+      // Skip anchors, javascript:, mailto:, tel:, empty hrefs
+      if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
+      }
+
+      // Check if it's an outbound (external) link
+      let linkDomain = '';
+      try {
+        if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+          const fullUrl = href.startsWith('//') ? 'https:' + href : href;
+          linkDomain = getDomain(fullUrl);
+        } else {
+          // Relative link - skip (internal link)
+          return;
+        }
+      } catch {
+        return;
+      }
+
+      // Skip internal links (same domain)
+      if (linkDomain === pageDomain) {
+        return;
+      }
+
+      // This is an outbound/external link
+      totalOutboundLinks++;
+
+      // Check for nofollow-type rel attributes
+      const rel = ($(el).attr('rel') || '').toLowerCase();
+      if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
+        nofollowLinks++;
+      }
+    });
+
+    // Determine follow status based on outbound link analysis
+    if (totalOutboundLinks > 0) {
+      const nofollowPercentage = (nofollowLinks / totalOutboundLinks) * 100;
+
+      // If more than 50% of outbound links are nofollow, mark page as Nofollow
+      if (nofollowPercentage > 50) {
+        return {
+          url,
+          followStatus: 'Nofollow',
+          source: `${nofollowLinks}/${totalOutboundLinks} outbound links have rel=nofollow`,
+        };
+      }
+
+      return {
+        url,
+        followStatus: 'Dofollow',
+        source: `${totalOutboundLinks - nofollowLinks}/${totalOutboundLinks} outbound links are dofollow`,
+      };
+    }
+
+    // If no outbound links found, default to Dofollow
+    return { url, followStatus: 'Dofollow', source: 'No outbound links found (default dofollow)' };
   } catch (error) {
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
       return { url, followStatus: 'Error', detail: 'Request timed out' };
