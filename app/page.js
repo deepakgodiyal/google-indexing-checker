@@ -15,7 +15,7 @@ function Header() {
             Google <span>Index Checker</span>
           </div>
         </a>
-        <div className="header-badge">SEO Tool v1.0</div>
+        <div className="header-badge">SEO Tool v2.0</div>
       </div>
     </header>
   );
@@ -32,8 +32,8 @@ function Hero() {
           Bulk <span>Google Index</span> Checker
         </h1>
         <p>
-          Paste your URLs below and instantly check whether Google has indexed
-          them. Supports up to 100 URLs at once with detailed status reports.
+          Paste your URLs below and instantly check Google index status plus
+          Dofollow/Nofollow status. Supports up to 100 URLs at once.
         </p>
       </div>
     </section>
@@ -46,10 +46,11 @@ function Hero() {
 function StatsCards({ results }) {
   const indexed = results.filter((r) => r.status === 'Indexed').length;
   const notIndexed = results.filter((r) => r.status === 'Not Indexed').length;
-  const total = results.length;
+  const dofollow = results.filter((r) => r.followStatus === 'Dofollow').length;
+  const nofollow = results.filter((r) => r.followStatus === 'Nofollow').length;
 
   return (
-    <div className="stats-grid">
+    <div className="stats-grid-5">
       <div className="stat-card indexed">
         <div className="stat-number">{indexed}</div>
         <div className="stat-label">Indexed</div>
@@ -58,9 +59,17 @@ function StatsCards({ results }) {
         <div className="stat-number">{notIndexed}</div>
         <div className="stat-label">Not Indexed</div>
       </div>
+      <div className="stat-card dofollow">
+        <div className="stat-number">{dofollow}</div>
+        <div className="stat-label">Dofollow</div>
+      </div>
+      <div className="stat-card nofollow">
+        <div className="stat-number">{nofollow}</div>
+        <div className="stat-label">Nofollow</div>
+      </div>
       <div className="stat-card total">
-        <div className="stat-number">{total}</div>
-        <div className="stat-label">Total Checked</div>
+        <div className="stat-number">{results.length}</div>
+        <div className="stat-label">Total</div>
       </div>
     </div>
   );
@@ -75,7 +84,11 @@ function ResultsTable({ results, filter, setFilter }) {
       ? results
       : filter === 'indexed'
       ? results.filter((r) => r.status === 'Indexed')
-      : results.filter((r) => r.status === 'Not Indexed');
+      : filter === 'not-indexed'
+      ? results.filter((r) => r.status === 'Not Indexed')
+      : filter === 'dofollow'
+      ? results.filter((r) => r.followStatus === 'Dofollow')
+      : results.filter((r) => r.followStatus === 'Nofollow');
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -83,6 +96,19 @@ function ResultsTable({ results, filter, setFilter }) {
         return 'indexed';
       case 'Not Indexed':
         return 'not-indexed';
+      case 'Checking...':
+        return 'checking';
+      default:
+        return 'error';
+    }
+  };
+
+  const getFollowClass = (followStatus) => {
+    switch (followStatus) {
+      case 'Dofollow':
+        return 'dofollow';
+      case 'Nofollow':
+        return 'nofollow';
       case 'Checking...':
         return 'checking';
       default:
@@ -113,6 +139,18 @@ function ResultsTable({ results, filter, setFilter }) {
           >
             Not Indexed
           </button>
+          <button
+            className={`filter-btn ${filter === 'dofollow' ? 'active' : ''}`}
+            onClick={() => setFilter('dofollow')}
+          >
+            Dofollow
+          </button>
+          <button
+            className={`filter-btn ${filter === 'nofollow' ? 'active' : ''}`}
+            onClick={() => setFilter('nofollow')}
+          >
+            Nofollow
+          </button>
         </div>
       </div>
 
@@ -122,14 +160,15 @@ function ResultsTable({ results, filter, setFilter }) {
             <tr>
               <th>#</th>
               <th>URL</th>
-              <th>Status</th>
+              <th>Index Status</th>
+              <th>Follow Status</th>
               <th>Google Search</th>
             </tr>
           </thead>
           <tbody>
             {filteredResults.length === 0 ? (
               <tr>
-                <td colSpan="4">
+                <td colSpan="5">
                   <div className="empty-state">
                     <p>No results to display for this filter.</p>
                   </div>
@@ -150,6 +189,16 @@ function ResultsTable({ results, filter, setFilter }) {
                         className={`status-dot ${getStatusClass(result.status)}`}
                       ></span>
                       {result.status}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}
+                    >
+                      <span
+                        className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}
+                      ></span>
+                      {result.followStatus || 'Checking...'}
                     </span>
                   </td>
                   <td>
@@ -180,7 +229,7 @@ function Footer() {
     <footer className="footer">
       <p>
         Google Indexing Checker &mdash; A free SEO tool to verify URL index
-        status.
+        status and Dofollow/Nofollow status.
       </p>
     </footer>
   );
@@ -190,11 +239,11 @@ function Footer() {
 // CSV EXPORT UTILITY
 // ==========================================
 function exportCSV(results) {
-  const header = 'URL,Status,Google Search Link\n';
+  const header = 'URL,Index Status,Follow Status,Google Search Link\n';
   const rows = results
     .map(
       (r) =>
-        `"${r.url}","${r.status}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`
+        `"${r.url}","${r.status}","${r.followStatus || 'N/A'}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`
     )
     .join('\n');
   const csvContent = header + rows;
@@ -213,11 +262,10 @@ export default function Home() {
   const [urls, setUrls] = useState('');
   const [results, setResults] = useState([]);
   const [isChecking, setIsChecking] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [progress, setProgress] = useState({ current: 0, total: 0, phase: '' });
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState('');
 
-  // Count URLs in the textarea
   const urlCount = urls
     .split('\n')
     .filter((line) => line.trim().length > 0).length;
@@ -228,7 +276,6 @@ export default function Home() {
   const handleCheck = useCallback(async () => {
     setError('');
 
-    // Parse and validate URLs
     const urlList = urls
       .split('\n')
       .map((u) => u.trim())
@@ -247,19 +294,20 @@ export default function Home() {
     setIsChecking(true);
     setResults([]);
     setFilter('all');
-    setProgress({ current: 0, total: urlList.length });
+    setProgress({ current: 0, total: urlList.length, phase: 'Checking index status...' });
 
-    // Initialize results with "Checking..." status
+    // Initialize results
     const initialResults = urlList.map((url) => ({
       url,
       status: 'Checking...',
+      followStatus: 'Checking...',
     }));
     setResults(initialResults);
 
-    // Process in batches of 5 with a delay between batches
     const BATCH_SIZE = 5;
     const updatedResults = [...initialResults];
 
+    // ---- PHASE 1: Check Index Status ----
     for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
       const batch = urlList.slice(i, i + BATCH_SIZE);
 
@@ -272,44 +320,87 @@ export default function Home() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(
-            errorData.error || `Server error: ${response.status}`
-          );
+          throw new Error(errorData.error || `Server error: ${response.status}`);
         }
 
         const data = await response.json();
 
-        // Update the results array with this batch's results
         data.results.forEach((result, idx) => {
-          updatedResults[i + idx] = result;
+          updatedResults[i + idx] = {
+            ...updatedResults[i + idx],
+            status: result.status,
+          };
         });
-
-        setResults([...updatedResults]);
-        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length });
       } catch (err) {
-        // Mark remaining batch items as errors
         batch.forEach((url, idx) => {
           updatedResults[i + idx] = {
-            url,
+            ...updatedResults[i + idx],
             status: 'Error',
           };
         });
-        setResults([...updatedResults]);
-        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length });
       }
 
-      // Add a small delay between batches to be respectful of rate limits
+      setResults([...updatedResults]);
+      setProgress({
+        current: Math.min(i + BATCH_SIZE, urlList.length),
+        total: urlList.length,
+        phase: 'Checking index status...',
+      });
+
       if (i + BATCH_SIZE < urlList.length) {
         await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+
+    // ---- PHASE 2: Check Dofollow/Nofollow Status ----
+    setProgress({ current: 0, total: urlList.length, phase: 'Checking follow status...' });
+
+    for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
+      const batch = urlList.slice(i, i + BATCH_SIZE);
+
+      try {
+        const response = await fetch('/api/check-follow', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urls: batch }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        data.results.forEach((result, idx) => {
+          updatedResults[i + idx] = {
+            ...updatedResults[i + idx],
+            followStatus: result.followStatus,
+          };
+        });
+      } catch (err) {
+        batch.forEach((url, idx) => {
+          updatedResults[i + idx] = {
+            ...updatedResults[i + idx],
+            followStatus: 'Error',
+          };
+        });
+      }
+
+      setResults([...updatedResults]);
+      setProgress({
+        current: Math.min(i + BATCH_SIZE, urlList.length),
+        total: urlList.length,
+        phase: 'Checking follow status...',
+      });
+
+      if (i + BATCH_SIZE < urlList.length) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
     }
 
     setIsChecking(false);
   }, [urls]);
 
-  // -----------------------------------------
-  // Check if we have final results to show
-  // -----------------------------------------
   const hasResults =
     results.length > 0 &&
     results.some((r) => r.status !== 'Checking...');
@@ -396,7 +487,7 @@ export default function Home() {
                     <circle cx="11" cy="11" r="8" />
                     <line x1="21" y1="21" x2="16.65" y2="16.65" />
                   </svg>
-                  Check Index Status
+                  Check Index &amp; Follow Status
                 </>
               )}
             </button>
@@ -429,7 +520,7 @@ export default function Home() {
                 className="btn-secondary"
                 onClick={() => {
                   setResults([]);
-                  setProgress({ current: 0, total: 0 });
+                  setProgress({ current: 0, total: 0, phase: '' });
                   setFilter('all');
                 }}
               >
@@ -443,7 +534,7 @@ export default function Home() {
         {isChecking && progress.total > 0 && (
           <div className="progress-section">
             <div className="progress-header">
-              <span className="progress-text">Checking URLs...</span>
+              <span className="progress-text">{progress.phase}</span>
               <span className="progress-count">
                 {progress.current} / {progress.total}
               </span>
