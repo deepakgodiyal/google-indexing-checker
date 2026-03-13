@@ -121,17 +121,17 @@ export async function POST(request) {
       );
     }
 
-    // Check for API key
-    const apiKey = process.env.SERPER_API_KEY;
+    const body = await request.json();
+    const { urls, apiKey: userApiKey } = body;
+
+    // Use user-provided API key, fallback to env variable
+    const apiKey = userApiKey || process.env.SERPER_API_KEY;
     if (!apiKey) {
       return Response.json(
-        { error: 'SERPER_API_KEY is not configured. Please add it to your .env.local file.' },
-        { status: 500 }
+        { error: 'No API key provided. Please add your Serper.dev API key in Settings.' },
+        { status: 400 }
       );
     }
-
-    const body = await request.json();
-    const { urls } = body;
 
     // Validate input
     if (!urls || !Array.isArray(urls) || urls.length === 0) {

@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 // ==========================================
 // HEADER COMPONENT
 // ==========================================
-function Header() {
+function Header({ userName, onSettingsClick }) {
   return (
     <header className="header">
       <div className="header-inner">
@@ -15,9 +15,192 @@ function Header() {
             Google <span>Index Checker</span>
           </div>
         </a>
-        <div className="header-badge">SEO Tool v2.0</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {userName && (
+            <div className="user-badge">
+              <span className="user-avatar">{userName.charAt(0).toUpperCase()}</span>
+              {userName}
+            </div>
+          )}
+          <button className="settings-btn" onClick={onSettingsClick} title="Settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
+  );
+}
+
+// ==========================================
+// SETTINGS MODAL
+// ==========================================
+function SettingsModal({ isOpen, onClose, userName, apiKey, onSave }) {
+  const [name, setName] = useState(userName);
+  const [key, setKey] = useState(apiKey);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setName(userName);
+    setKey(apiKey);
+    setSaved(false);
+  }, [isOpen, userName, apiKey]);
+
+  if (!isOpen) return null;
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      alert('Please enter your name.');
+      return;
+    }
+    if (!key.trim()) {
+      alert('Please enter your Serper.dev API key.');
+      return;
+    }
+    onSave(name.trim(), key.trim());
+    setSaved(true);
+    setTimeout(() => {
+      onClose();
+    }, 1000);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2 className="modal-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            API Settings
+          </h2>
+          <button className="modal-close" onClick={onClose}>X</button>
+        </div>
+
+        <div className="modal-body">
+          <p className="modal-description">
+            Enter your name and Serper.dev API key. Get your free API key at{' '}
+            <a href="https://serper.dev" target="_blank" rel="noopener noreferrer">serper.dev</a>{' '}
+            (2,500 free searches per account).
+          </p>
+
+          <div className="form-group">
+            <label className="form-label">Your Name</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. Vishal Kumar"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Serper.dev API Key</label>
+            <input
+              type="password"
+              className="form-input"
+              placeholder="Paste your API key here..."
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+            />
+          </div>
+
+          <button
+            className={`btn-primary ${saved ? 'btn-saved' : ''}`}
+            onClick={handleSave}
+            style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
+          >
+            {saved ? 'Saved!' : 'Save Settings'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// SETUP SCREEN (shown when no API key)
+// ==========================================
+function SetupScreen({ onSave }) {
+  const [name, setName] = useState('');
+  const [key, setKey] = useState('');
+
+  const handleSave = () => {
+    if (!name.trim()) {
+      alert('Please enter your name.');
+      return;
+    }
+    if (!key.trim()) {
+      alert('Please enter your Serper.dev API key.');
+      return;
+    }
+    onSave(name.trim(), key.trim());
+  };
+
+  return (
+    <div className="setup-screen">
+      <div className="setup-card">
+        <div className="setup-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+        <h2 className="setup-title">Welcome! Set Up Your API Key</h2>
+        <p className="setup-description">
+          To use this tool, you need a free Serper.dev API key. Each key gets <strong>2,500 free searches</strong> per month.
+        </p>
+
+        <div className="setup-steps">
+          <div className="setup-step">
+            <span className="step-number">1</span>
+            <span>Go to <a href="https://serper.dev" target="_blank" rel="noopener noreferrer">serper.dev</a> and sign up for free</span>
+          </div>
+          <div className="setup-step">
+            <span className="step-number">2</span>
+            <span>Copy your API key from the dashboard</span>
+          </div>
+          <div className="setup-step">
+            <span className="step-number">3</span>
+            <span>Paste it below and start checking URLs!</span>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Your Name</label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="e.g. Vishal Kumar"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Serper.dev API Key</label>
+          <input
+            type="password"
+            className="form-input"
+            placeholder="Paste your API key here..."
+            value={key}
+            onChange={(e) => setKey(e.target.value)}
+          />
+        </div>
+
+        <button
+          className="btn-primary"
+          onClick={handleSave}
+          style={{ width: '100%', justifyContent: 'center', marginTop: '8px', padding: '16px 32px' }}
+        >
+          Save &amp; Start Using Tool
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -92,27 +275,19 @@ function ResultsTable({ results, filter, setFilter }) {
 
   const getStatusClass = (status) => {
     switch (status) {
-      case 'Indexed':
-        return 'indexed';
-      case 'Not Indexed':
-        return 'not-indexed';
-      case 'Checking...':
-        return 'checking';
-      default:
-        return 'error';
+      case 'Indexed': return 'indexed';
+      case 'Not Indexed': return 'not-indexed';
+      case 'Checking...': return 'checking';
+      default: return 'error';
     }
   };
 
   const getFollowClass = (followStatus) => {
     switch (followStatus) {
-      case 'Dofollow':
-        return 'dofollow';
-      case 'Nofollow':
-        return 'nofollow';
-      case 'Checking...':
-        return 'checking';
-      default:
-        return 'error';
+      case 'Dofollow': return 'dofollow';
+      case 'Nofollow': return 'nofollow';
+      case 'Checking...': return 'checking';
+      default: return 'error';
     }
   };
 
@@ -121,39 +296,17 @@ function ResultsTable({ results, filter, setFilter }) {
       <div className="results-header">
         <div className="results-title">Results ({filteredResults.length})</div>
         <div className="results-actions">
-          <button
-            className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-            onClick={() => setFilter('all')}
-          >
-            All
-          </button>
-          <button
-            className={`filter-btn ${filter === 'indexed' ? 'active' : ''}`}
-            onClick={() => setFilter('indexed')}
-          >
-            Indexed
-          </button>
-          <button
-            className={`filter-btn ${filter === 'not-indexed' ? 'active' : ''}`}
-            onClick={() => setFilter('not-indexed')}
-          >
-            Not Indexed
-          </button>
-          <button
-            className={`filter-btn ${filter === 'dofollow' ? 'active' : ''}`}
-            onClick={() => setFilter('dofollow')}
-          >
-            Dofollow
-          </button>
-          <button
-            className={`filter-btn ${filter === 'nofollow' ? 'active' : ''}`}
-            onClick={() => setFilter('nofollow')}
-          >
-            Nofollow
-          </button>
+          {['all', 'indexed', 'not-indexed', 'dofollow', 'nofollow'].map((f) => (
+            <button
+              key={f}
+              className={`filter-btn ${filter === f ? 'active' : ''}`}
+              onClick={() => setFilter(f)}
+            >
+              {f === 'all' ? 'All' : f === 'indexed' ? 'Indexed' : f === 'not-indexed' ? 'Not Indexed' : f === 'dofollow' ? 'Dofollow' : 'Nofollow'}
+            </button>
+          ))}
         </div>
       </div>
-
       <div className="table-container">
         <table className="results-table">
           <thead>
@@ -169,45 +322,28 @@ function ResultsTable({ results, filter, setFilter }) {
             {filteredResults.length === 0 ? (
               <tr>
                 <td colSpan="5">
-                  <div className="empty-state">
-                    <p>No results to display for this filter.</p>
-                  </div>
+                  <div className="empty-state"><p>No results to display for this filter.</p></div>
                 </td>
               </tr>
             ) : (
               filteredResults.map((result, index) => (
                 <tr key={result.url + index}>
                   <td className="row-number">{index + 1}</td>
-                  <td className="url-cell" title={result.url}>
-                    {result.url}
-                  </td>
+                  <td className="url-cell" title={result.url}>{result.url}</td>
                   <td>
-                    <span
-                      className={`status-badge ${getStatusClass(result.status)}`}
-                    >
-                      <span
-                        className={`status-dot ${getStatusClass(result.status)}`}
-                      ></span>
+                    <span className={`status-badge ${getStatusClass(result.status)}`}>
+                      <span className={`status-dot ${getStatusClass(result.status)}`}></span>
                       {result.status}
                     </span>
                   </td>
                   <td>
-                    <span
-                      className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}
-                    >
-                      <span
-                        className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}
-                      ></span>
+                    <span className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}>
+                      <span className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}></span>
                       {result.followStatus || 'Checking...'}
                     </span>
                   </td>
                   <td>
-                    <a
-                      href={`https://www.google.com/search?q=site:${encodeURIComponent(result.url)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="google-link"
-                    >
+                    <a href={`https://www.google.com/search?q=site:${encodeURIComponent(result.url)}`} target="_blank" rel="noopener noreferrer" className="google-link">
                       Check on Google ↗
                     </a>
                   </td>
@@ -227,27 +363,20 @@ function ResultsTable({ results, filter, setFilter }) {
 function Footer() {
   return (
     <footer className="footer">
-      <p>
-        Google Indexing Checker &mdash; A free SEO tool to verify URL index
-        status and Dofollow/Nofollow status.
-      </p>
+      <p>Google Indexing Checker &mdash; A free SEO tool to verify URL index status and Dofollow/Nofollow status.</p>
     </footer>
   );
 }
 
 // ==========================================
-// CSV EXPORT UTILITY
+// CSV EXPORT
 // ==========================================
 function exportCSV(results) {
   const header = 'URL,Index Status,Follow Status,Google Search Link\n';
-  const rows = results
-    .map(
-      (r) =>
-        `"${r.url}","${r.status}","${r.followStatus || 'N/A'}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`
-    )
-    .join('\n');
-  const csvContent = header + rows;
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const rows = results.map((r) =>
+    `"${r.url}","${r.status}","${r.followStatus || 'N/A'}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`
+  ).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = `index-check-results-${new Date().toISOString().split('T')[0]}.csv`;
@@ -256,11 +385,10 @@ function exportCSV(results) {
 }
 
 // ==========================================
-// EXCEL EXPORT UTILITY
+// EXCEL EXPORT
 // ==========================================
 async function exportExcel(results) {
   const XLSX = (await import('xlsx')).default;
-
   const data = results.map((r, i) => ({
     '#': i + 1,
     'URL': r.url,
@@ -268,21 +396,10 @@ async function exportExcel(results) {
     'Follow Status': r.followStatus || 'N/A',
     'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
   }));
-
   const worksheet = XLSX.utils.json_to_sheet(data);
-
-  // Set column widths
-  worksheet['!cols'] = [
-    { wch: 5 },   // #
-    { wch: 60 },  // URL
-    { wch: 15 },  // Index Status
-    { wch: 15 },  // Follow Status
-    { wch: 70 },  // Google Search Link
-  ];
-
+  worksheet['!cols'] = [{ wch: 5 }, { wch: 60 }, { wch: 15 }, { wch: 15 }, { wch: 70 }];
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Index Results');
-
   XLSX.writeFile(workbook, `index-check-results-${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
@@ -290,6 +407,10 @@ async function exportExcel(results) {
 // MAIN PAGE COMPONENT
 // ==========================================
 export default function Home() {
+  const [userName, setUserName] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [isSetup, setIsSetup] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [urls, setUrls] = useState('');
   const [results, setResults] = useState([]);
   const [isChecking, setIsChecking] = useState(false);
@@ -297,28 +418,43 @@ export default function Home() {
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState('');
 
-  const urlCount = urls
-    .split('\n')
-    .filter((line) => line.trim().length > 0).length;
+  // Load saved settings on mount
+  useEffect(() => {
+    const savedName = localStorage.getItem('gic_user_name') || '';
+    const savedKey = localStorage.getItem('gic_api_key') || '';
+    setUserName(savedName);
+    setApiKey(savedKey);
+    setIsSetup(savedName && savedKey ? true : false);
+  }, []);
 
-  // -----------------------------------------
+  // Save settings handler
+  const handleSaveSettings = (name, key) => {
+    setUserName(name);
+    setApiKey(key);
+    localStorage.setItem('gic_user_name', name);
+    localStorage.setItem('gic_api_key', key);
+    setIsSetup(true);
+  };
+
+  const urlCount = urls.split('\n').filter((line) => line.trim().length > 0).length;
+
   // Main check handler
-  // -----------------------------------------
   const handleCheck = useCallback(async () => {
     setError('');
 
-    const urlList = urls
-      .split('\n')
-      .map((u) => u.trim())
-      .filter((u) => u.length > 0);
+    if (!apiKey) {
+      setError('Please set your API key first (click the settings icon).');
+      return;
+    }
+
+    const urlList = urls.split('\n').map((u) => u.trim()).filter((u) => u.length > 0);
 
     if (urlList.length === 0) {
       setError('Please paste at least one URL to check.');
       return;
     }
-
     if (urlList.length > 100) {
-      setError('Maximum 100 URLs allowed per check. Please reduce the list.');
+      setError('Maximum 100 URLs allowed per check.');
       return;
     }
 
@@ -327,143 +463,111 @@ export default function Home() {
     setFilter('all');
     setProgress({ current: 0, total: urlList.length, phase: 'Checking index status...' });
 
-    // Initialize results
-    const initialResults = urlList.map((url) => ({
-      url,
-      status: 'Checking...',
-      followStatus: 'Checking...',
-    }));
+    const initialResults = urlList.map((url) => ({ url, status: 'Checking...', followStatus: 'Checking...' }));
     setResults(initialResults);
 
     const BATCH_SIZE = 5;
     const updatedResults = [...initialResults];
 
-    // ---- PHASE 1: Check Index Status ----
+    // PHASE 1: Index Status
     for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
       const batch = urlList.slice(i, i + BATCH_SIZE);
-
       try {
         const response = await fetch('/api/check-index', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ urls: batch }),
+          body: JSON.stringify({ urls: batch, apiKey }),
         });
-
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(errorData.error || `Server error: ${response.status}`);
         }
-
         const data = await response.json();
-
         data.results.forEach((result, idx) => {
-          updatedResults[i + idx] = {
-            ...updatedResults[i + idx],
-            status: result.status,
-          };
+          updatedResults[i + idx] = { ...updatedResults[i + idx], status: result.status };
         });
       } catch (err) {
         batch.forEach((url, idx) => {
-          updatedResults[i + idx] = {
-            ...updatedResults[i + idx],
-            status: 'Error',
-          };
+          updatedResults[i + idx] = { ...updatedResults[i + idx], status: 'Error' };
         });
       }
-
       setResults([...updatedResults]);
-      setProgress({
-        current: Math.min(i + BATCH_SIZE, urlList.length),
-        total: urlList.length,
-        phase: 'Checking index status...',
-      });
-
-      if (i + BATCH_SIZE < urlList.length) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      }
+      setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking index status...' });
+      if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 2000));
     }
 
-    // ---- PHASE 2: Check Dofollow/Nofollow Status ----
+    // PHASE 2: Follow Status
     setProgress({ current: 0, total: urlList.length, phase: 'Checking follow status...' });
-
     for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
       const batch = urlList.slice(i, i + BATCH_SIZE);
-
       try {
         const response = await fetch('/api/check-follow', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ urls: batch }),
         });
-
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
         const data = await response.json();
-
         data.results.forEach((result, idx) => {
-          updatedResults[i + idx] = {
-            ...updatedResults[i + idx],
-            followStatus: result.followStatus,
-          };
+          updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: result.followStatus };
         });
       } catch (err) {
         batch.forEach((url, idx) => {
-          updatedResults[i + idx] = {
-            ...updatedResults[i + idx],
-            followStatus: 'Error',
-          };
+          updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: 'Error' };
         });
       }
-
       setResults([...updatedResults]);
-      setProgress({
-        current: Math.min(i + BATCH_SIZE, urlList.length),
-        total: urlList.length,
-        phase: 'Checking follow status...',
-      });
-
-      if (i + BATCH_SIZE < urlList.length) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking follow status...' });
+      if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
     }
 
     setIsChecking(false);
-  }, [urls]);
+  }, [urls, apiKey]);
 
-  const hasResults =
-    results.length > 0 &&
-    results.some((r) => r.status !== 'Checking...');
+  const hasResults = results.length > 0 && results.some((r) => r.status !== 'Checking...');
+
+  // If not set up, show setup screen
+  if (!isSetup) {
+    return (
+      <>
+        <header className="header">
+          <div className="header-inner">
+            <a href="/" className="logo">
+              <div className="logo-icon">GIC</div>
+              <div className="logo-text">Google <span>Index Checker</span></div>
+            </a>
+          </div>
+        </header>
+        <SetupScreen onSave={handleSaveSettings} />
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
-      <Header />
+      <Header userName={userName} onSettingsClick={() => setShowSettings(true)} />
       <Hero />
 
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        userName={userName}
+        apiKey={apiKey}
+        onSave={handleSaveSettings}
+      />
+
       <main className="main-container">
-        {/* URL Input Card */}
         <div className="input-card">
           <div className="input-card-header">
             <div className="input-card-title">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
               </svg>
               Enter URLs to Check
             </div>
-            <div className="url-count-badge">
-              {urlCount} URL{urlCount !== 1 ? 's' : ''} entered
-            </div>
+            <div className="url-count-badge">{urlCount} URL{urlCount !== 1 ? 's' : ''} entered</div>
           </div>
 
           <div className="textarea-wrapper">
@@ -477,143 +581,53 @@ export default function Home() {
           </div>
 
           {error && (
-            <div
-              style={{
-                color: 'var(--error-red)',
-                fontSize: '14px',
-                marginBottom: '16px',
-                padding: '10px 16px',
-                background: 'rgba(255, 23, 68, 0.06)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 23, 68, 0.15)',
-              }}
-            >
+            <div style={{ color: 'var(--error-red)', fontSize: '14px', marginBottom: '16px', padding: '10px 16px', background: 'rgba(255,23,68,0.06)', borderRadius: '8px', border: '1px solid rgba(255,23,68,0.15)' }}>
               {error}
             </div>
           )}
 
           <div className="button-row">
-            <button
-              className="btn-primary"
-              onClick={handleCheck}
-              disabled={isChecking || urlCount === 0}
-            >
-              {isChecking ? (
-                <>
-                  <span className="spinner"></span>
-                  Checking...
-                </>
-              ) : (
-                <>
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                  Check Index &amp; Follow Status
-                </>
+            <button className="btn-primary" onClick={handleCheck} disabled={isChecking || urlCount === 0}>
+              {isChecking ? (<><span className="spinner"></span>Checking...</>) : (
+                <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>Check Index &amp; Follow Status</>
               )}
             </button>
 
             {hasResults && (
               <>
-                <button
-                  className="btn-secondary"
-                  onClick={() => exportCSV(results)}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
+                <button className="btn-secondary" onClick={() => exportCSV(results)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                   Export CSV
                 </button>
-                <button
-                  className="btn-excel"
-                  onClick={() => exportExcel(results)}
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
+                <button className="btn-excel" onClick={() => exportExcel(results)}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                   Export Excel
                 </button>
               </>
             )}
 
             {results.length > 0 && !isChecking && (
-              <button
-                className="btn-secondary"
-                onClick={() => {
-                  setResults([]);
-                  setProgress({ current: 0, total: 0, phase: '' });
-                  setFilter('all');
-                }}
-              >
+              <button className="btn-secondary" onClick={() => { setResults([]); setProgress({ current: 0, total: 0, phase: '' }); setFilter('all'); }}>
                 Clear Results
               </button>
             )}
           </div>
         </div>
 
-        {/* Progress Bar */}
         {isChecking && progress.total > 0 && (
           <div className="progress-section">
             <div className="progress-header">
               <span className="progress-text">{progress.phase}</span>
-              <span className="progress-count">
-                {progress.current} / {progress.total}
-              </span>
+              <span className="progress-count">{progress.current} / {progress.total}</span>
             </div>
             <div className="progress-bar-track">
-              <div
-                className="progress-bar-fill"
-                style={{
-                  width: `${(progress.current / progress.total) * 100}%`,
-                }}
-              />
+              <div className="progress-bar-fill" style={{ width: `${(progress.current / progress.total) * 100}%` }} />
             </div>
           </div>
         )}
 
-        {/* Stats Cards */}
         {hasResults && <StatsCards results={results} />}
-
-        {/* Results Table */}
-        {results.length > 0 && (
-          <ResultsTable
-            results={results}
-            filter={filter}
-            setFilter={setFilter}
-          />
-        )}
+        {results.length > 0 && <ResultsTable results={results} filter={filter} setFilter={setFilter} />}
       </main>
 
       <Footer />
