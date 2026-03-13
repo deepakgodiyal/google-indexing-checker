@@ -5,6 +5,9 @@
 // for reliable Google search results.
 // ============================================
 
+// Allow up to 60 seconds on Vercel (Hobby plan max)
+export const maxDuration = 60;
+
 // Rate limiting: simple in-memory store
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute

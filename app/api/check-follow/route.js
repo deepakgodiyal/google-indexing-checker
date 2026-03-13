@@ -4,16 +4,11 @@ import * as cheerio from 'cheerio';
 // Dofollow / Nofollow Checker - API Route
 // ============================================
 // Smart detection: Focuses on CONTENT AREA links
-// (where backlinks are placed), not nav/footer links
-//
-// Checks:
-// 1. X-Robots-Tag header for nofollow
-// 2. <meta name="robots" content="nofollow"> tag
-// 3. <meta name="googlebot" content="nofollow"> tag
-// 4. rel="nofollow" on links in content/body area
-// 5. Fallback: checks ALL outbound links
-// Features: 30s timeout + auto-retry (3 attempts)
+// Optimized for Vercel: parallel processing, 60s max
 // ============================================
+
+// Allow up to 60 seconds on Vercel (Hobby plan max)
+export const maxDuration = 60;
 
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -63,7 +58,6 @@ function getRandomUserAgent() {
   return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
-// Extract domain from URL
 function getDomain(url) {
   try {
     return new URL(url).hostname.replace('www.', '');
@@ -72,11 +66,12 @@ function getDomain(url) {
   }
 }
 
-// Fetch with retry logic - tries up to 3 times
-async function fetchWithRetry(url, maxRetries = 3) {
+// Fetch with retry - 2 attempts, 15s timeout each
+async function fetchWithRetry(url) {
+  const maxAttempts = 2;
   let lastError = null;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const response = await fetch(url, {
         headers: {
@@ -85,21 +80,17 @@ async function fetchWithRetry(url, maxRetries = 3) {
           'Accept-Language': 'en-US,en;q=0.9',
           'Cache-Control': 'no-cache',
         },
-        signal: AbortSignal.timeout(30000), // 30 seconds timeout
+        signal: AbortSignal.timeout(15000), // 15 seconds per attempt
         redirect: 'follow',
       });
-
       return response;
     } catch (error) {
       lastError = error;
-      console.log(`Attempt ${attempt}/${maxRetries} failed for ${url}: ${error.message}`);
-
-      if (attempt < maxRetries) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 1000)); // 1s wait before retry
       }
     }
   }
-
   throw lastError;
 }
 
@@ -113,26 +104,24 @@ function analyzeLinks($, container, pageDomain) {
   links.each((_, el) => {
     const href = ($(el).attr('href') || '').trim();
 
-    // Skip non-http links
     if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
       return;
     }
 
-    // Check if it's an external link
     let linkDomain = '';
     try {
       if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
         const fullUrl = href.startsWith('//') ? 'https:' + href : href;
         linkDomain = getDomain(fullUrl);
       } else {
-        return; // Relative link = internal
+        return;
       }
     } catch {
       return;
     }
 
     if (linkDomain === pageDomain) {
-      return; // Same domain = internal
+      return;
     }
 
     totalOutbound++;
@@ -194,18 +183,12 @@ async function checkFollowStatus(url) {
 
     const pageDomain = getDomain(url);
 
-    // ====================================================
     // Check 4: SMART CONTENT AREA DETECTION
-    // First try to find the content/body area of the page
-    // and check links ONLY within that area
-    // ====================================================
-
     let contentContainer = null;
 
     for (const selector of CONTENT_SELECTORS) {
       const el = $(selector);
       if (el.length > 0) {
-        // Make sure this container actually has some content (not just an empty div)
         const text = el.text().trim();
         if (text.length > 100) {
           contentContainer = selector;
@@ -215,11 +198,9 @@ async function checkFollowStatus(url) {
     }
 
     if (contentContainer) {
-      // Found content area - check links within it
       const contentLinks = analyzeLinks($, contentContainer, pageDomain);
 
       if (contentLinks.totalOutbound > 0) {
-        // If ANY link in content area has nofollow, the page is Nofollow for backlinks
         if (contentLinks.nofollowCount > 0) {
           return {
             url,
@@ -236,16 +217,10 @@ async function checkFollowStatus(url) {
       }
     }
 
-    // ====================================================
     // Check 5: FALLBACK - Check ALL outbound links
-    // If no content area found, check entire page
-    // But use a LOWER threshold - if ANY link has nofollow
-    // ====================================================
-
     const allLinks = analyzeLinks($, null, pageDomain);
 
     if (allLinks.totalOutbound > 0) {
-      // If any outbound link has nofollow, likely the site adds nofollow to user links
       if (allLinks.nofollowCount > 0) {
         return {
           url,
@@ -261,11 +236,10 @@ async function checkFollowStatus(url) {
       };
     }
 
-    // No outbound links found at all
     return { url, followStatus: 'Dofollow', source: 'No outbound links found (default dofollow)' };
   } catch (error) {
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-      return { url, followStatus: 'Error', detail: 'Request timed out (after 3 retries)' };
+      return { url, followStatus: 'Error', detail: 'Site not accessible from server' };
     }
     return { url, followStatus: 'Error', detail: error.message || 'Unknown error' };
   }
@@ -290,16 +264,10 @@ export async function POST(request) {
       );
     }
 
-    const results = [];
-    for (let i = 0; i < urls.length; i++) {
-      const result = await checkFollowStatus(urls[i]);
-      results.push(result);
-
-      if (i < urls.length - 1) {
-        const delay = 200 + Math.random() * 300;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
+    // Process ALL URLs in PARALLEL (not one-by-one) for speed
+    const results = await Promise.all(
+      urls.map((url) => checkFollowStatus(url))
+    );
 
     return Response.json({ results });
   } catch (error) {
