@@ -201,7 +201,10 @@ async function checkFollowStatus(url) {
       const contentLinks = analyzeLinks($, contentContainer, pageDomain);
 
       if (contentLinks.totalOutbound > 0) {
-        if (contentLinks.nofollowCount > 0) {
+        const nofollowPct = (contentLinks.nofollowCount / contentLinks.totalOutbound) * 100;
+
+        // MAJORITY RULE: Only mark as Nofollow if >50% of content links are nofollow
+        if (nofollowPct > 50) {
           return {
             url,
             followStatus: 'Nofollow',
@@ -212,7 +215,7 @@ async function checkFollowStatus(url) {
         return {
           url,
           followStatus: 'Dofollow',
-          source: `${contentLinks.totalOutbound} content links are dofollow`,
+          source: `${contentLinks.totalOutbound - contentLinks.nofollowCount}/${contentLinks.totalOutbound} content links are dofollow`,
         };
       }
     }
@@ -221,7 +224,10 @@ async function checkFollowStatus(url) {
     const allLinks = analyzeLinks($, null, pageDomain);
 
     if (allLinks.totalOutbound > 0) {
-      if (allLinks.nofollowCount > 0) {
+      const nofollowPct = (allLinks.nofollowCount / allLinks.totalOutbound) * 100;
+
+      // MAJORITY RULE: Only mark as Nofollow if >50% of all links are nofollow
+      if (nofollowPct > 50) {
         return {
           url,
           followStatus: 'Nofollow',
@@ -232,7 +238,7 @@ async function checkFollowStatus(url) {
       return {
         url,
         followStatus: 'Dofollow',
-        source: `All ${allLinks.totalOutbound} outbound links are dofollow`,
+        source: `${allLinks.totalOutbound - allLinks.nofollowCount}/${allLinks.totalOutbound} outbound links are dofollow`,
       };
     }
 
