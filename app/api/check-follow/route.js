@@ -8,12 +8,14 @@ import * as cheerio from 'cheerio';
 // 2. <meta name="robots" content="nofollow"> tag
 // 3. <meta name="googlebot" content="nofollow"> tag
 // 4. rel="nofollow" / rel="ugc" / rel="sponsored" on <a> tags
+// Features: 30s timeout + auto-retry (up to 3 attempts)
 // ============================================
 
 const USER_AGENTS = [
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 ];
 
 function getRandomUserAgent() {
@@ -29,17 +31,41 @@ function getDomain(url) {
   }
 }
 
+// Fetch with retry logic - tries up to 3 times
+async function fetchWithRetry(url, maxRetries = 3) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': getRandomUserAgent(),
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache',
+        },
+        signal: AbortSignal.timeout(30000), // 30 seconds timeout
+        redirect: 'follow',
+      });
+
+      return response;
+    } catch (error) {
+      lastError = error;
+      console.log(`Attempt ${attempt}/${maxRetries} failed for ${url}: ${error.message}`);
+
+      // Wait before retrying (increasing delay: 2s, 4s)
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+      }
+    }
+  }
+
+  throw lastError;
+}
+
 async function checkFollowStatus(url) {
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': getRandomUserAgent(),
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15000),
-      redirect: 'follow',
-    });
+    const response = await fetchWithRetry(url);
 
     if (!response.ok) {
       return { url, followStatus: 'Error', detail: `HTTP ${response.status}` };
@@ -149,7 +175,7 @@ async function checkFollowStatus(url) {
     return { url, followStatus: 'Dofollow', source: 'No outbound links found (default dofollow)' };
   } catch (error) {
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-      return { url, followStatus: 'Error', detail: 'Request timed out' };
+      return { url, followStatus: 'Error', detail: 'Request timed out (after 3 retries)' };
     }
     return { url, followStatus: 'Error', detail: error.message || 'Unknown error' };
   }
