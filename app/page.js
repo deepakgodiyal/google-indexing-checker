@@ -688,6 +688,15 @@ export default function Home() {
       if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
     }
 
+    // Auto-fix: If page is 404/410/500/Error, follow status should be N/A
+    updatedResults.forEach((r, idx) => {
+      const sc = r.statusCode || '';
+      if (sc.startsWith('404') || sc.startsWith('410') || sc.startsWith('500') || sc.startsWith('502') || sc.startsWith('503')) {
+        updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+      }
+    });
+    setResults([...updatedResults]);
+
     // PHASE 4: Client-side fallback for URLs that got "Error"
     const errorUrls = updatedResults
       .map((r, idx) => ({ ...r, idx }))
