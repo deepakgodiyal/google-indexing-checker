@@ -611,6 +611,7 @@ body {
   border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .status-badge.indexed {
