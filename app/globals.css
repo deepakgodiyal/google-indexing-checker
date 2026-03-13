@@ -341,6 +341,26 @@ body {
   background: rgba(0, 41, 255, 0.03);
 }
 
+.btn-excel {
+  background: var(--white);
+  color: #217346;
+  border: 2px solid #217346;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-excel:hover {
+  background: #217346;
+  color: var(--white);
+}
+
 /* ========================================
    PROGRESS BAR
    ======================================== */

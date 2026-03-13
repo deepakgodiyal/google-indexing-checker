@@ -256,6 +256,37 @@ function exportCSV(results) {
 }
 
 // ==========================================
+// EXCEL EXPORT UTILITY
+// ==========================================
+async function exportExcel(results) {
+  const XLSX = (await import('xlsx')).default;
+
+  const data = results.map((r, i) => ({
+    '#': i + 1,
+    'URL': r.url,
+    'Index Status': r.status,
+    'Follow Status': r.followStatus || 'N/A',
+    'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+
+  // Set column widths
+  worksheet['!cols'] = [
+    { wch: 5 },   // #
+    { wch: 60 },  // URL
+    { wch: 15 },  // Index Status
+    { wch: 15 },  // Follow Status
+    { wch: 70 },  // Google Search Link
+  ];
+
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Index Results');
+
+  XLSX.writeFile(workbook, `index-check-results-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// ==========================================
 // MAIN PAGE COMPONENT
 // ==========================================
 export default function Home() {
@@ -493,26 +524,48 @@ export default function Home() {
             </button>
 
             {hasResults && (
-              <button
-                className="btn-secondary"
-                onClick={() => exportCSV(results)}
-              >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              <>
+                <button
+                  className="btn-secondary"
+                  onClick={() => exportCSV(results)}
                 >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Export CSV
-              </button>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Export CSV
+                </button>
+                <button
+                  className="btn-excel"
+                  onClick={() => exportExcel(results)}
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Export Excel
+                </button>
+              </>
             )}
 
             {results.length > 0 && !isChecking && (
