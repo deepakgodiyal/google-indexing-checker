@@ -558,6 +558,7 @@ body {
   letter-spacing: 0.8px;
   background: var(--off-white);
   border-bottom: 1px solid var(--light-gray);
+  white-space: nowrap;
 }
 
 .results-table thead th:first-child {

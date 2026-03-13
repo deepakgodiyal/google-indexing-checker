@@ -324,10 +324,10 @@ function ResultsTable({ results, filter, setFilter }) {
             <tr>
               <th>#</th>
               <th>URL</th>
-              <th>Status Code</th>
-              <th>Index Status</th>
-              <th>Follow Status</th>
-              <th>Google Search</th>
+              <th style={{whiteSpace:'nowrap'}}>Index Status</th>
+              <th style={{whiteSpace:'nowrap'}}>Follow Status</th>
+              <th style={{whiteSpace:'nowrap'}}>Status Code</th>
+              <th style={{whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
           </thead>
           <tbody>
@@ -343,12 +343,6 @@ function ResultsTable({ results, filter, setFilter }) {
                   <td className="row-number">{index + 1}</td>
                   <td className="url-cell" title={result.url}>{result.url}</td>
                   <td>
-                    <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
-                      <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
-                      {result.statusCode || 'Checking...'}
-                    </span>
-                  </td>
-                  <td>
                     <span className={`status-badge ${getStatusClass(result.status)}`}>
                       <span className={`status-dot ${getStatusClass(result.status)}`}></span>
                       {result.status}
@@ -358,6 +352,12 @@ function ResultsTable({ results, filter, setFilter }) {
                     <span className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}>
                       <span className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}></span>
                       {result.followStatus || 'Checking...'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
+                      <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
+                      {result.statusCode || 'Checking...'}
                     </span>
                   </td>
                   <td>
