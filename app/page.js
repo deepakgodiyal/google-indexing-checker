@@ -389,19 +389,26 @@ function exportCSV(results) {
 // EXCEL EXPORT
 // ==========================================
 async function exportExcel(results) {
-  const XLSX = (await import('xlsx')).default;
-  const data = results.map((r, i) => ({
-    '#': i + 1,
-    'URL': r.url,
-    'Index Status': r.status,
-    'Follow Status': r.followStatus || 'N/A',
-    'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
-  }));
-  const worksheet = XLSX.utils.json_to_sheet(data);
-  worksheet['!cols'] = [{ wch: 5 }, { wch: 60 }, { wch: 15 }, { wch: 15 }, { wch: 70 }];
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Index Results');
-  XLSX.writeFile(workbook, `index-check-results-${new Date().toISOString().split('T')[0]}.xlsx`);
+  try {
+    const xlsxModule = await import('xlsx');
+    const XLSX = xlsxModule.default || xlsxModule;
+    const data = results.map((r, i) => ({
+      '#': i + 1,
+      'URL': r.url,
+      'Index Status': r.status,
+      'Follow Status': r.followStatus || 'N/A',
+      'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    worksheet['!cols'] = [{ wch: 5 }, { wch: 60 }, { wch: 15 }, { wch: 15 }, { wch: 70 }];
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Index Results');
+    XLSX.writeFile(workbook, `index-check-results-${new Date().toISOString().split('T')[0]}.xlsx`);
+  } catch (err) {
+    console.error('Excel export error:', err);
+    alert('Excel export failed. Downloading CSV instead...');
+    exportCSV(results);
+  }
 }
 
 // ==========================================
