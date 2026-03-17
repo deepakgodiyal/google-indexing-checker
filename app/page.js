@@ -322,12 +322,12 @@ function ResultsTable({ results, filter, setFilter }) {
         <table className="results-table">
           <thead>
             <tr>
-              <th>#</th>
+              <th style={{width:'40px'}}>#</th>
               <th>URL</th>
-              <th style={{whiteSpace:'nowrap'}}>Index Status</th>
-              <th style={{whiteSpace:'nowrap'}}>Follow Status</th>
-              <th style={{whiteSpace:'nowrap'}}>Status Code</th>
-              <th style={{whiteSpace:'nowrap'}}>Google Search</th>
+              <th style={{width:'130px',whiteSpace:'nowrap'}}>Index Status</th>
+              <th style={{width:'130px',whiteSpace:'nowrap'}}>Follow Status</th>
+              <th style={{width:'140px',whiteSpace:'nowrap'}}>Status Code</th>
+              <th style={{width:'140px',whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
           </thead>
           <tbody>
@@ -341,7 +341,7 @@ function ResultsTable({ results, filter, setFilter }) {
               filteredResults.map((result, index) => (
                 <tr key={result.url + index}>
                   <td className="row-number">{index + 1}</td>
-                  <td className="url-cell" title={result.url}>{result.url}</td>
+                  <td className="url-cell" title={result.url}><a href={result.url} target="_blank" rel="noopener noreferrer" className="url-link">{result.url}</a></td>
                   <td>
                     <span className={`status-badge ${getStatusClass(result.status)}`}>
                       <span className={`status-dot ${getStatusClass(result.status)}`}></span>
@@ -555,6 +555,9 @@ export default function Home() {
   const [progress, setProgress] = useState({ current: 0, total: 0, phase: '' });
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState('');
+  const [checkIndex, setCheckIndex] = useState(true);
+  const [checkFollow, setCheckFollow] = useState(true);
+  const [checkStatus, setCheckStatus] = useState(true);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -580,8 +583,13 @@ export default function Home() {
   const handleCheck = useCallback(async () => {
     setError('');
 
-    if (!apiKey) {
-      setError('Please set your API key first (click the settings icon).');
+    if (!checkIndex && !checkFollow && !checkStatus) {
+      setError('Please select at least one check type.');
+      return;
+    }
+
+    if (checkIndex && !apiKey) {
+      setError('Please set your API key first (click the settings icon). API key is needed for Index Check.');
       return;
     }
 
@@ -599,131 +607,146 @@ export default function Home() {
     setIsChecking(true);
     setResults([]);
     setFilter('all');
-    setProgress({ current: 0, total: urlList.length, phase: 'Checking index status...' });
 
-    const initialResults = urlList.map((url) => ({ url, status: 'Checking...', followStatus: 'Checking...', statusCode: 'Checking...' }));
+    const initialResults = urlList.map((url) => ({
+      url,
+      status: checkIndex ? 'Checking...' : '-',
+      followStatus: checkFollow ? 'Checking...' : '-',
+      statusCode: checkStatus ? 'Checking...' : '-',
+    }));
     setResults(initialResults);
 
     const BATCH_SIZE = 5;
     const updatedResults = [...initialResults];
 
-    // PHASE 1: Index Status
-    for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
-      const batch = urlList.slice(i, i + BATCH_SIZE);
-      try {
-        const response = await fetch('/api/check-index', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ urls: batch, apiKey }),
-        });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || `Server error: ${response.status}`);
-        }
-        const data = await response.json();
-        data.results.forEach((result, idx) => {
-          updatedResults[i + idx] = { ...updatedResults[i + idx], status: result.status };
-        });
-      } catch (err) {
-        batch.forEach((url, idx) => {
-          updatedResults[i + idx] = { ...updatedResults[i + idx], status: 'Error' };
-        });
-      }
-      setResults([...updatedResults]);
-      setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking index status...' });
-      if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 2000));
-    }
-
-    // PHASE 2: Follow Status
-    setProgress({ current: 0, total: urlList.length, phase: 'Checking follow status...' });
-    for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
-      const batch = urlList.slice(i, i + BATCH_SIZE);
-      try {
-        const response = await fetch('/api/check-follow', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ urls: batch }),
-        });
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
-        const data = await response.json();
-        data.results.forEach((result, idx) => {
-          updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: result.followStatus };
-        });
-      } catch (err) {
-        batch.forEach((url, idx) => {
-          updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: 'Error' };
-        });
-      }
-      setResults([...updatedResults]);
-      setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking follow status...' });
-      if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
-    }
-
-    // PHASE 3: HTTP Status Code
-    setProgress({ current: 0, total: urlList.length, phase: 'Checking HTTP status codes...' });
-    for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
-      const batch = urlList.slice(i, i + BATCH_SIZE);
-      try {
-        const response = await fetch('/api/check-status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ urls: batch }),
-        });
-        if (!response.ok) throw new Error(`Server error: ${response.status}`);
-        const data = await response.json();
-        data.results.forEach((result, idx) => {
-          updatedResults[i + idx] = {
-            ...updatedResults[i + idx],
-            statusCode: result.statusLabel || 'Error',
-            statusCategory: result.category || 'error',
-          };
-        });
-      } catch (err) {
-        batch.forEach((url, idx) => {
-          updatedResults[i + idx] = { ...updatedResults[i + idx], statusCode: 'Error', statusCategory: 'error' };
-        });
-      }
-      setResults([...updatedResults]);
-      setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking HTTP status codes...' });
-      if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
-    }
-
-    // Auto-fix: If page is 404/410/500/Error, follow status should be N/A
-    updatedResults.forEach((r, idx) => {
-      const sc = r.statusCode || '';
-      if (sc.startsWith('404') || sc.startsWith('410') || sc.startsWith('500') || sc.startsWith('502') || sc.startsWith('503')) {
-        updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
-      }
-    });
-    setResults([...updatedResults]);
-
-    // PHASE 4: Client-side fallback for URLs that got "Error"
-    const errorUrls = updatedResults
-      .map((r, idx) => ({ ...r, idx }))
-      .filter((r) => r.followStatus === 'Error');
-
-    if (errorUrls.length > 0) {
-      setProgress({ current: 0, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
-
-      for (let i = 0; i < errorUrls.length; i++) {
-        const { url, idx } = errorUrls[i];
+    // PHASE 1: Index Status (only if selected)
+    if (checkIndex) {
+      setProgress({ current: 0, total: urlList.length, phase: 'Checking index status...' });
+      for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
+        const batch = urlList.slice(i, i + BATCH_SIZE);
         try {
-          const result = await clientSideFollowCheck(url);
-          if (result) {
-            updatedResults[idx] = { ...updatedResults[idx], followStatus: result };
-          } else {
-            updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+          const response = await fetch('/api/check-index', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: batch, apiKey }),
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server error: ${response.status}`);
           }
-        } catch {
-          updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+          const data = await response.json();
+          data.results.forEach((result, idx) => {
+            updatedResults[i + idx] = { ...updatedResults[i + idx], status: result.status };
+          });
+        } catch (err) {
+          batch.forEach((url, idx) => {
+            updatedResults[i + idx] = { ...updatedResults[i + idx], status: 'Error' };
+          });
         }
         setResults([...updatedResults]);
-        setProgress({ current: i + 1, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
+        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking index status...' });
+        if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+
+    // PHASE 2: Follow Status (only if selected)
+    if (checkFollow) {
+      setProgress({ current: 0, total: urlList.length, phase: 'Checking follow status...' });
+      for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
+        const batch = urlList.slice(i, i + BATCH_SIZE);
+        try {
+          const response = await fetch('/api/check-follow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: batch }),
+          });
+          if (!response.ok) throw new Error(`Server error: ${response.status}`);
+          const data = await response.json();
+          data.results.forEach((result, idx) => {
+            updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: result.followStatus };
+          });
+        } catch (err) {
+          batch.forEach((url, idx) => {
+            updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: 'Error' };
+          });
+        }
+        setResults([...updatedResults]);
+        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking follow status...' });
+        if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
+    // PHASE 3: HTTP Status Code (only if selected)
+    if (checkStatus) {
+      setProgress({ current: 0, total: urlList.length, phase: 'Checking HTTP status codes...' });
+      for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
+        const batch = urlList.slice(i, i + BATCH_SIZE);
+        try {
+          const response = await fetch('/api/check-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: batch }),
+          });
+          if (!response.ok) throw new Error(`Server error: ${response.status}`);
+          const data = await response.json();
+          data.results.forEach((result, idx) => {
+            updatedResults[i + idx] = {
+              ...updatedResults[i + idx],
+              statusCode: result.statusLabel || 'Error',
+              statusCategory: result.category || 'error',
+            };
+          });
+        } catch (err) {
+          batch.forEach((url, idx) => {
+            updatedResults[i + idx] = { ...updatedResults[i + idx], statusCode: 'Error', statusCategory: 'error' };
+          });
+        }
+        setResults([...updatedResults]);
+        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking HTTP status codes...' });
+        if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
+    // Auto-fix: If status code checked and page is 404/410/500, follow status = N/A
+    if (checkStatus && checkFollow) {
+      updatedResults.forEach((r, idx) => {
+        const sc = r.statusCode || '';
+        if (sc.startsWith('404') || sc.startsWith('410') || sc.startsWith('500') || sc.startsWith('502') || sc.startsWith('503')) {
+          updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+        }
+      });
+      setResults([...updatedResults]);
+    }
+
+    // PHASE 4: Client-side fallback for follow check errors
+    if (checkFollow) {
+      const errorUrls = updatedResults
+        .map((r, idx) => ({ ...r, idx }))
+        .filter((r) => r.followStatus === 'Error');
+
+      if (errorUrls.length > 0) {
+        setProgress({ current: 0, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
+
+        for (let i = 0; i < errorUrls.length; i++) {
+          const { url, idx } = errorUrls[i];
+          try {
+            const result = await clientSideFollowCheck(url);
+            if (result) {
+              updatedResults[idx] = { ...updatedResults[idx], followStatus: result };
+            } else {
+              updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+            }
+          } catch {
+            updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+          }
+          setResults([...updatedResults]);
+          setProgress({ current: i + 1, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
+        }
       }
     }
 
     setIsChecking(false);
-  }, [urls, apiKey]);
+  }, [urls, apiKey, checkIndex, checkFollow, checkStatus]);
 
   const hasResults = results.length > 0 && results.some((r) => r.status !== 'Checking...');
 
@@ -779,6 +802,22 @@ export default function Home() {
               onChange={(e) => setUrls(e.target.value)}
               disabled={isChecking}
             />
+          </div>
+
+          <div className="check-options">
+            <span className="check-options-label">Select checks:</span>
+            <label className="check-option">
+              <input type="checkbox" checked={checkIndex} onChange={(e) => setCheckIndex(e.target.checked)} disabled={isChecking} />
+              <span className="check-option-text">Index Check</span>
+            </label>
+            <label className="check-option">
+              <input type="checkbox" checked={checkFollow} onChange={(e) => setCheckFollow(e.target.checked)} disabled={isChecking} />
+              <span className="check-option-text">Dofollow/Nofollow</span>
+            </label>
+            <label className="check-option">
+              <input type="checkbox" checked={checkStatus} onChange={(e) => setCheckStatus(e.target.checked)} disabled={isChecking} />
+              <span className="check-option-text">Status Code</span>
+            </label>
           </div>
 
           {error && (
