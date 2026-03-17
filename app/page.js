@@ -37,16 +37,18 @@ function Header({ userName, onSettingsClick }) {
 // ==========================================
 // SETTINGS MODAL
 // ==========================================
-function SettingsModal({ isOpen, onClose, userName, apiKey, onSave }) {
+function SettingsModal({ isOpen, onClose, userName, apiKey, targetDomain, onSave }) {
   const [name, setName] = useState(userName);
   const [key, setKey] = useState(apiKey);
+  const [domain, setDomain] = useState(targetDomain);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setName(userName);
     setKey(apiKey);
+    setDomain(targetDomain);
     setSaved(false);
-  }, [isOpen, userName, apiKey]);
+  }, [isOpen, userName, apiKey, targetDomain]);
 
   if (!isOpen) return null;
 
@@ -59,7 +61,7 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, onSave }) {
       alert('Please enter your Serper.dev API key.');
       return;
     }
-    onSave(name.trim(), key.trim());
+    onSave(name.trim(), key.trim(), domain.trim());
     setSaved(true);
     setTimeout(() => {
       onClose();
@@ -75,14 +77,14 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, onSave }) {
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            API Settings
+            Settings
           </h2>
           <button className="modal-close" onClick={onClose}>X</button>
         </div>
 
         <div className="modal-body">
           <p className="modal-description">
-            Enter your name and Serper.dev API key. Get your free API key at{' '}
+            Enter your name, Serper.dev API key, and your target domain for backlink checking. Get your free API key at{' '}
             <a href="https://serper.dev" target="_blank" rel="noopener noreferrer">serper.dev</a>{' '}
             (2,500 free searches per account).
           </p>
@@ -109,6 +111,20 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, onSave }) {
             />
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Target Domain (for Dofollow/Nofollow check)</label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. expertmarketresearch.com"
+              value={domain}
+              onChange={(e) => setDomain(e.target.value)}
+            />
+            <p style={{ fontSize: '12px', color: '#8892a4', marginTop: '6px', lineHeight: '1.5' }}>
+              Only links pointing to this domain will be checked for Dofollow/Nofollow. Leave empty to check all outbound links (old behavior).
+            </p>
+          </div>
+
           <button
             className={`btn-primary ${saved ? 'btn-saved' : ''}`}
             onClick={handleSave}
@@ -128,6 +144,7 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, onSave }) {
 function SetupScreen({ onSave }) {
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
+  const [domain, setDomain] = useState('');
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -138,7 +155,7 @@ function SetupScreen({ onSave }) {
       alert('Please enter your Serper.dev API key.');
       return;
     }
-    onSave(name.trim(), key.trim());
+    onSave(name.trim(), key.trim(), domain.trim());
   };
 
   return (
@@ -190,6 +207,20 @@ function SetupScreen({ onSave }) {
             value={key}
             onChange={(e) => setKey(e.target.value)}
           />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">Target Domain (for Dofollow/Nofollow check)</label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="e.g. expertmarketresearch.com"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+          />
+          <p style={{ fontSize: '12px', color: '#8892a4', marginTop: '6px', lineHeight: '1.5' }}>
+            Only links pointing to this domain will be checked. Leave empty to check all outbound links.
+          </p>
         </div>
 
         <button
@@ -288,6 +319,7 @@ function ResultsTable({ results, filter, setFilter }) {
       case 'Nofollow': return 'nofollow';
       case 'Checking...': return 'checking';
       case 'N/A': return 'na-status';
+      case 'No Link Found': return 'na-status';
       default: return 'error';
     }
   };
@@ -442,7 +474,7 @@ const CORS_PROXIES = [
   'https://cors-anywhere.herokuapp.com/',
 ];
 
-async function clientSideFollowCheck(url) {
+async function clientSideFollowCheck(url, targetDomain) {
   for (const proxy of CORS_PROXIES) {
     try {
       const proxyUrl = proxy + encodeURIComponent(url);
@@ -458,7 +490,10 @@ async function clientSideFollowCheck(url) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
-      // Check 1: Meta robots nofollow
+      // Normalize target domain for comparison
+      const normalizedTarget = targetDomain ? targetDomain.replace('www.', '').toLowerCase() : '';
+
+      // Check 1: Meta robots nofollow (page-level)
       const metaRobots = doc.querySelector('meta[name="robots"]');
       if (metaRobots) {
         const content = (metaRobots.getAttribute('content') || '').toLowerCase();
@@ -467,7 +502,7 @@ async function clientSideFollowCheck(url) {
         }
       }
 
-      // Check 2: Googlebot meta nofollow
+      // Check 2: Googlebot meta nofollow (page-level)
       const metaGooglebot = doc.querySelector('meta[name="googlebot"]');
       if (metaGooglebot) {
         const content = (metaGooglebot.getAttribute('content') || '').toLowerCase();
@@ -476,7 +511,45 @@ async function clientSideFollowCheck(url) {
         }
       }
 
-      // Check 3: Content area links
+      // If target domain is set, find ONLY links pointing to that domain
+      if (normalizedTarget) {
+        const allPageLinks = doc.querySelectorAll('a[href]');
+        let targetLinksFound = 0;
+        let targetNofollowCount = 0;
+
+        allPageLinks.forEach((link) => {
+          const href = link.getAttribute('href') || '';
+          if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:')) return;
+
+          let linkDomain = '';
+          try {
+            if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+              const fullUrl = href.startsWith('//') ? 'https:' + href : href;
+              linkDomain = new URL(fullUrl).hostname.replace('www.', '').toLowerCase();
+            } else {
+              return;
+            }
+          } catch { return; }
+
+          // Only check links pointing to the target domain
+          if (linkDomain === normalizedTarget || linkDomain.endsWith('.' + normalizedTarget)) {
+            targetLinksFound++;
+            const rel = (link.getAttribute('rel') || '').toLowerCase();
+            if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
+              targetNofollowCount++;
+            }
+          }
+        });
+
+        if (targetLinksFound > 0) {
+          // If ANY link to target domain is nofollow, mark as Nofollow
+          return targetNofollowCount > 0 ? 'Nofollow' : 'Dofollow';
+        }
+
+        return 'No Link Found';
+      }
+
+      // OLD BEHAVIOR: If no target domain, check all outbound links with majority rule
       const contentSelectors = [
         'article', '.post-content', '.blog-content', '.entry-content',
         '.post-body', '.blog-body', '.article-content', '.article-body',
@@ -485,11 +558,9 @@ async function clientSideFollowCheck(url) {
         '.post', '.entry', 'main',
       ];
 
-      // Get page domain
       let pageDomain = '';
       try { pageDomain = new URL(url).hostname.replace('www.', ''); } catch {}
 
-      // Try content area first
       let contentEl = null;
       for (const sel of contentSelectors) {
         const el = doc.querySelector(sel);
@@ -514,7 +585,7 @@ async function clientSideFollowCheck(url) {
             const fullUrl = href.startsWith('//') ? 'https:' + href : href;
             linkDomain = new URL(fullUrl).hostname.replace('www.', '');
           } else {
-            return; // relative = internal
+            return;
           }
         } catch { return; }
 
@@ -532,13 +603,13 @@ async function clientSideFollowCheck(url) {
         return nofollowPct > 50 ? 'Nofollow' : 'Dofollow';
       }
 
-      return 'Dofollow'; // No outbound links found
+      return 'Dofollow';
     } catch {
-      continue; // Try next proxy
+      continue;
     }
   }
 
-  return null; // All proxies failed
+  return null;
 }
 
 // ==========================================
@@ -547,6 +618,7 @@ async function clientSideFollowCheck(url) {
 export default function Home() {
   const [userName, setUserName] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [targetDomain, setTargetDomain] = useState('');
   const [isSetup, setIsSetup] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [urls, setUrls] = useState('');
@@ -563,17 +635,21 @@ export default function Home() {
   useEffect(() => {
     const savedName = localStorage.getItem('gic_user_name') || '';
     const savedKey = localStorage.getItem('gic_api_key') || '';
+    const savedDomain = localStorage.getItem('gic_target_domain') || '';
     setUserName(savedName);
     setApiKey(savedKey);
+    setTargetDomain(savedDomain);
     setIsSetup(savedName && savedKey ? true : false);
   }, []);
 
   // Save settings handler
-  const handleSaveSettings = (name, key) => {
+  const handleSaveSettings = (name, key, domain) => {
     setUserName(name);
     setApiKey(key);
+    setTargetDomain(domain || '');
     localStorage.setItem('gic_user_name', name);
     localStorage.setItem('gic_api_key', key);
+    localStorage.setItem('gic_target_domain', domain || '');
     setIsSetup(true);
   };
 
@@ -658,7 +734,7 @@ export default function Home() {
           const response = await fetch('/api/check-follow', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ urls: batch }),
+            body: JSON.stringify({ urls: batch, targetDomain }),
           });
           if (!response.ok) throw new Error(`Server error: ${response.status}`);
           const data = await response.json();
@@ -730,7 +806,7 @@ export default function Home() {
         for (let i = 0; i < errorUrls.length; i++) {
           const { url, idx } = errorUrls[i];
           try {
-            const result = await clientSideFollowCheck(url);
+            const result = await clientSideFollowCheck(url, targetDomain);
             if (result) {
               updatedResults[idx] = { ...updatedResults[idx], followStatus: result };
             } else {
@@ -746,7 +822,7 @@ export default function Home() {
     }
 
     setIsChecking(false);
-  }, [urls, apiKey, checkIndex, checkFollow, checkStatus]);
+  }, [urls, apiKey, targetDomain, checkIndex, checkFollow, checkStatus]);
 
   const hasResults = results.length > 0 && results.some((r) => r.status !== 'Checking...');
 
@@ -778,6 +854,7 @@ export default function Home() {
         onClose={() => setShowSettings(false)}
         userName={userName}
         apiKey={apiKey}
+        targetDomain={targetDomain}
         onSave={handleSaveSettings}
       />
 

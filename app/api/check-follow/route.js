@@ -95,11 +95,12 @@ async function fetchWithRetry(url) {
 }
 
 // Check outbound links in a specific element/container
-function analyzeLinks($, container, pageDomain) {
+function analyzeLinks($, container, pageDomain, targetDomain) {
   let totalOutbound = 0;
   let nofollowCount = 0;
 
   const links = container ? $(container).find('a[href]') : $('a[href]');
+  const normalizedTarget = targetDomain ? targetDomain.replace('www.', '').toLowerCase() : '';
 
   links.each((_, el) => {
     const href = ($(el).attr('href') || '').trim();
@@ -120,8 +121,17 @@ function analyzeLinks($, container, pageDomain) {
       return;
     }
 
+    // Skip internal links (same domain as page)
     if (linkDomain === pageDomain) {
       return;
+    }
+
+    // If targetDomain is set, ONLY count links pointing to target domain
+    if (normalizedTarget) {
+      const linkDomainLower = linkDomain.toLowerCase();
+      if (linkDomainLower !== normalizedTarget && !linkDomainLower.endsWith('.' + normalizedTarget)) {
+        return; // Skip links NOT pointing to target domain
+      }
     }
 
     totalOutbound++;
@@ -135,7 +145,43 @@ function analyzeLinks($, container, pageDomain) {
   return { totalOutbound, nofollowCount };
 }
 
-async function checkFollowStatus(url) {
+// Targeted domain check - searches ENTIRE page for links to specific domain
+function analyzeTargetedLinks($, targetDomain) {
+  const normalizedTarget = targetDomain.replace('www.', '').toLowerCase();
+  let targetLinksFound = 0;
+  let targetNofollowCount = 0;
+
+  $('a[href]').each((_, el) => {
+    const href = ($(el).attr('href') || '').trim();
+    if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      return;
+    }
+
+    let linkDomain = '';
+    try {
+      if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+        const fullUrl = href.startsWith('//') ? 'https:' + href : href;
+        linkDomain = getDomain(fullUrl).toLowerCase();
+      } else {
+        return;
+      }
+    } catch {
+      return;
+    }
+
+    if (linkDomain === normalizedTarget || linkDomain.endsWith('.' + normalizedTarget)) {
+      targetLinksFound++;
+      const rel = ($(el).attr('rel') || '').toLowerCase();
+      if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
+        targetNofollowCount++;
+      }
+    }
+  });
+
+  return { targetLinksFound, targetNofollowCount };
+}
+
+async function checkFollowStatus(url, targetDomain) {
   try {
     const response = await fetchWithRetry(url);
 
@@ -143,7 +189,7 @@ async function checkFollowStatus(url) {
       return { url, followStatus: 'Error', detail: `HTTP ${response.status}` };
     }
 
-    // Check 1: X-Robots-Tag header
+    // Check 1: X-Robots-Tag header (page-level nofollow)
     const xRobotsTag = response.headers.get('x-robots-tag') || '';
     if (xRobotsTag.toLowerCase().includes('nofollow')) {
       return { url, followStatus: 'Nofollow', source: 'X-Robots-Tag header' };
@@ -152,7 +198,7 @@ async function checkFollowStatus(url) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Check 2: <meta name="robots" content="...nofollow...">
+    // Check 2: <meta name="robots" content="...nofollow..."> (page-level)
     let isNofollow = false;
     let source = '';
 
@@ -168,7 +214,7 @@ async function checkFollowStatus(url) {
       return { url, followStatus: 'Nofollow', source };
     }
 
-    // Check 3: <meta name="googlebot" content="...nofollow...">
+    // Check 3: <meta name="googlebot" content="...nofollow..."> (page-level)
     $('meta[name="googlebot"], meta[name="Googlebot"]').each((_, el) => {
       const content = ($(el).attr('content') || '').toLowerCase();
       if (content.includes('nofollow')) {
@@ -181,6 +227,31 @@ async function checkFollowStatus(url) {
       return { url, followStatus: 'Nofollow', source };
     }
 
+    // ===== TARGET DOMAIN MODE =====
+    // If targetDomain is set, search ENTIRE page for links pointing to that domain
+    if (targetDomain) {
+      const targeted = analyzeTargetedLinks($, targetDomain);
+
+      if (targeted.targetLinksFound > 0) {
+        // If ANY link to target is nofollow → Nofollow
+        if (targeted.targetNofollowCount > 0) {
+          return {
+            url,
+            followStatus: 'Nofollow',
+            source: `${targeted.targetNofollowCount}/${targeted.targetLinksFound} links to ${targetDomain} have rel=nofollow`,
+          };
+        }
+        return {
+          url,
+          followStatus: 'Dofollow',
+          source: `${targeted.targetLinksFound} links to ${targetDomain} are all dofollow`,
+        };
+      }
+
+      return { url, followStatus: 'No Link Found', source: `No links to ${targetDomain} found on this page` };
+    }
+
+    // ===== OLD BEHAVIOR (no target domain) =====
     const pageDomain = getDomain(url);
 
     // Check 4: SMART CONTENT AREA DETECTION
@@ -198,12 +269,11 @@ async function checkFollowStatus(url) {
     }
 
     if (contentContainer) {
-      const contentLinks = analyzeLinks($, contentContainer, pageDomain);
+      const contentLinks = analyzeLinks($, contentContainer, pageDomain, '');
 
       if (contentLinks.totalOutbound > 0) {
         const nofollowPct = (contentLinks.nofollowCount / contentLinks.totalOutbound) * 100;
 
-        // MAJORITY RULE: Only mark as Nofollow if >50% of content links are nofollow
         if (nofollowPct > 50) {
           return {
             url,
@@ -221,12 +291,11 @@ async function checkFollowStatus(url) {
     }
 
     // Check 5: FALLBACK - Check ALL outbound links
-    const allLinks = analyzeLinks($, null, pageDomain);
+    const allLinks = analyzeLinks($, null, pageDomain, '');
 
     if (allLinks.totalOutbound > 0) {
       const nofollowPct = (allLinks.nofollowCount / allLinks.totalOutbound) * 100;
 
-      // MAJORITY RULE: Only mark as Nofollow if >50% of all links are nofollow
       if (nofollowPct > 50) {
         return {
           url,
@@ -254,7 +323,7 @@ async function checkFollowStatus(url) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { urls } = body;
+    const { urls, targetDomain } = body;
 
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
       return Response.json(
@@ -272,7 +341,7 @@ export async function POST(request) {
 
     // Process ALL URLs in PARALLEL (not one-by-one) for speed
     const results = await Promise.all(
-      urls.map((url) => checkFollowStatus(url))
+      urls.map((url) => checkFollowStatus(url, targetDomain || ''))
     );
 
     return Response.json({ results });
