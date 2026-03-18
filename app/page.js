@@ -411,8 +411,8 @@ function ResultsTable({ results, filter, setFilter }) {
               <th>URL</th>
               <th style={{width:'130px',whiteSpace:'nowrap'}}>Index Status</th>
               <th style={{width:'155px',whiteSpace:'nowrap'}}>Follow Status</th>
-              <th style={{width:'120px',whiteSpace:'nowrap'}}>Status Code</th>
-              <th style={{width:'150px',whiteSpace:'nowrap'}}>Google Search</th>
+              <th style={{width:'155px',whiteSpace:'nowrap'}}>Status Code</th>
+              <th style={{width:'155px',whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
           </thead>
           <tbody>
