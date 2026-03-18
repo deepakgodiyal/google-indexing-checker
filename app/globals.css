@@ -596,13 +596,40 @@ body {
 }
 
 .url-cell {
-  max-width: 400px;
+  max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-primary);
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
   font-size: 13px;
+}
+
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.recheck-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: rgba(0, 41, 255, 0.08);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--primary-blue);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.recheck-btn:hover {
+  background: rgba(0, 41, 255, 0.15);
+  transform: rotate(180deg);
 }
 
 .status-badge {

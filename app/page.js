@@ -344,7 +344,7 @@ function StatsCards({ results }) {
 // ==========================================
 // RESULTS TABLE
 // ==========================================
-function ResultsTable({ results, filter, setFilter }) {
+function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckStatus, onRecheckFollow, isChecking }) {
   const filteredResults =
     filter === 'all'
       ? results
@@ -409,9 +409,9 @@ function ResultsTable({ results, filter, setFilter }) {
             <tr>
               <th style={{width:'40px'}}>#</th>
               <th>URL</th>
-              <th style={{width:'130px',whiteSpace:'nowrap'}}>Index Status</th>
+              <th style={{width:'140px',whiteSpace:'nowrap'}}>Index Status</th>
+              <th style={{width:'160px',whiteSpace:'nowrap'}}>Status Code</th>
               <th style={{width:'155px',whiteSpace:'nowrap'}}>Follow Status</th>
-              <th style={{width:'155px',whiteSpace:'nowrap'}}>Status Code</th>
               <th style={{width:'155px',whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
           </thead>
@@ -423,35 +423,59 @@ function ResultsTable({ results, filter, setFilter }) {
                 </td>
               </tr>
             ) : (
-              filteredResults.map((result, index) => (
-                <tr key={result.url + index}>
-                  <td className="row-number">{index + 1}</td>
-                  <td className="url-cell" title={result.url}><a href={result.url} target="_blank" rel="noopener noreferrer" className="url-link">{result.url}</a></td>
-                  <td>
-                    <span className={`status-badge ${getStatusClass(result.status)}`}>
-                      <span className={`status-dot ${getStatusClass(result.status)}`}></span>
-                      {result.status}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}>
-                      <span className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}></span>
-                      {result.followStatus || 'Checking...'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
-                      <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
-                      {result.statusCode || 'Checking...'}
-                    </span>
-                  </td>
-                  <td>
-                    <a href={`https://www.google.com/search?q=site:${encodeURIComponent(result.url)}`} target="_blank" rel="noopener noreferrer" className="google-link">
-                      Check on Google ↗
-                    </a>
-                  </td>
-                </tr>
-              ))
+              filteredResults.map((result, index) => {
+                const originalIndex = results.findIndex(r => r.url === result.url);
+                return (
+                  <tr key={result.url + index}>
+                    <td className="row-number">{index + 1}</td>
+                    <td className="url-cell" title={result.url}><a href={result.url} target="_blank" rel="noopener noreferrer" className="url-link">{result.url}</a></td>
+                    <td>
+                      <div className="status-cell">
+                        <span className={`status-badge ${getStatusClass(result.status)}`}>
+                          <span className={`status-dot ${getStatusClass(result.status)}`}></span>
+                          {result.status}
+                        </span>
+                        {!isChecking && result.status !== 'Checking...' && result.status !== '-' && (
+                          <button className="recheck-btn" onClick={() => onRecheckIndex(originalIndex)} title="Recheck Index Status">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="status-cell">
+                        <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
+                          <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
+                          {result.statusCode || 'Checking...'}
+                        </span>
+                        {!isChecking && result.statusCode !== 'Checking...' && result.statusCode !== '-' && (
+                          <button className="recheck-btn" onClick={() => onRecheckStatus(originalIndex)} title="Recheck Status Code">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="status-cell">
+                        <span className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}>
+                          <span className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}></span>
+                          {result.followStatus || 'Checking...'}
+                        </span>
+                        {!isChecking && result.followStatus !== 'Checking...' && result.followStatus !== '-' && (
+                          <button className="recheck-btn" onClick={() => onRecheckFollow(originalIndex)} title="Recheck Follow Status">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <a href={`https://www.google.com/search?q=site:${encodeURIComponent(result.url)}`} target="_blank" rel="noopener noreferrer" className="google-link">
+                        Check on Google ↗
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -744,6 +768,89 @@ export default function Home() {
 
   const urlCount = urls.split('\n').filter((line) => line.trim().length > 0).length;
 
+  // Recheck single URL - Index Status
+  const recheckIndex = useCallback(async (urlIndex) => {
+    const url = results[urlIndex]?.url;
+    if (!url || !apiKey) return;
+
+    const updated = [...results];
+    updated[urlIndex] = { ...updated[urlIndex], status: 'Checking...' };
+    setResults(updated);
+
+    try {
+      const response = await fetch('/api/check-index', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: [url], apiKey }),
+      });
+      const data = await response.json();
+      updated[urlIndex] = { ...updated[urlIndex], status: data.results?.[0]?.status || 'Error' };
+    } catch {
+      updated[urlIndex] = { ...updated[urlIndex], status: 'Error' };
+    }
+    setResults([...updated]);
+  }, [results, apiKey]);
+
+  // Recheck single URL - Status Code
+  const recheckStatus = useCallback(async (urlIndex) => {
+    const url = results[urlIndex]?.url;
+    if (!url) return;
+
+    const updated = [...results];
+    updated[urlIndex] = { ...updated[urlIndex], statusCode: 'Checking...' };
+    setResults(updated);
+
+    try {
+      const response = await fetch('/api/check-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: [url] }),
+      });
+      const data = await response.json();
+      const result = data.results?.[0];
+      updated[urlIndex] = {
+        ...updated[urlIndex],
+        statusCode: result?.statusLabel || 'Error',
+        statusCategory: result?.category || 'error',
+      };
+    } catch {
+      updated[urlIndex] = { ...updated[urlIndex], statusCode: 'Error' };
+    }
+    setResults([...updated]);
+  }, [results]);
+
+  // Recheck single URL - Follow Status
+  const recheckFollow = useCallback(async (urlIndex) => {
+    const url = results[urlIndex]?.url;
+    if (!url) return;
+
+    // Only recheck if status code is 200 OK
+    const sc = results[urlIndex]?.statusCode || '';
+    if (!sc.startsWith('200')) {
+      const updated = [...results];
+      updated[urlIndex] = { ...updated[urlIndex], followStatus: 'N/A' };
+      setResults([...updated]);
+      return;
+    }
+
+    const updated = [...results];
+    updated[urlIndex] = { ...updated[urlIndex], followStatus: 'Checking...' };
+    setResults(updated);
+
+    try {
+      const response = await fetch('/api/check-follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: [url], targetDomain }),
+      });
+      const data = await response.json();
+      updated[urlIndex] = { ...updated[urlIndex], followStatus: data.results?.[0]?.followStatus || 'Error' };
+    } catch {
+      updated[urlIndex] = { ...updated[urlIndex], followStatus: 'Error' };
+    }
+    setResults([...updated]);
+  }, [results, targetDomain]);
+
   // Main check handler
   const handleCheck = useCallback(async () => {
     setError('');
@@ -776,8 +883,8 @@ export default function Home() {
     const initialResults = urlList.map((url) => ({
       url,
       status: checkIndex ? 'Checking...' : '-',
-      followStatus: checkFollow ? 'Checking...' : '-',
       statusCode: checkStatus ? 'Checking...' : '-',
+      followStatus: checkFollow ? 'Checking...' : '-',
     }));
     setResults(initialResults);
 
@@ -814,34 +921,7 @@ export default function Home() {
       }
     }
 
-    // PHASE 2: Follow Status (only if selected)
-    if (checkFollow) {
-      setProgress({ current: 0, total: urlList.length, phase: 'Checking follow status...' });
-      for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
-        const batch = urlList.slice(i, i + BATCH_SIZE);
-        try {
-          const response = await fetch('/api/check-follow', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ urls: batch, targetDomain }),
-          });
-          if (!response.ok) throw new Error(`Server error: ${response.status}`);
-          const data = await response.json();
-          data.results.forEach((result, idx) => {
-            updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: result.followStatus };
-          });
-        } catch (err) {
-          batch.forEach((url, idx) => {
-            updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: 'Error' };
-          });
-        }
-        setResults([...updatedResults]);
-        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking follow status...' });
-        if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
-      }
-    }
-
-    // PHASE 3: HTTP Status Code (only if selected)
+    // PHASE 2: HTTP Status Code (only if selected)
     if (checkStatus) {
       setProgress({ current: 0, total: urlList.length, phase: 'Checking HTTP status codes...' });
       for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
@@ -872,28 +952,68 @@ export default function Home() {
       }
     }
 
-    // Auto-fix: If status code checked and page is 404/410/500, follow status = N/A
-    if (checkStatus && checkFollow) {
+    // PHASE 3: Before Follow check - set N/A for non-200 URLs
+    if (checkFollow) {
       updatedResults.forEach((r, idx) => {
         const sc = r.statusCode || '';
-        if (sc.startsWith('404') || sc.startsWith('410') || sc.startsWith('500') || sc.startsWith('502') || sc.startsWith('503')) {
+        if (!sc.startsWith('200') && sc !== '-' && sc !== 'Checking...') {
           updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
         }
       });
       setResults([...updatedResults]);
     }
 
+    // PHASE 3 continued: Follow Status (only if selected and not already N/A)
+    if (checkFollow) {
+      setProgress({ current: 0, total: urlList.length, phase: 'Checking follow status...' });
+      for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
+        const batch = urlList.slice(i, i + BATCH_SIZE);
+        // Only check URLs where followStatus is still 'Checking...'
+        const urlsToCheck = batch.filter((_, idx) => updatedResults[i + idx]?.followStatus === 'Checking...');
+
+        if (urlsToCheck.length > 0) {
+          try {
+            const response = await fetch('/api/check-follow', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ urls: urlsToCheck, targetDomain }),
+            });
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            const data = await response.json();
+            data.results.forEach((result, resultIdx) => {
+              const originalIdx = batch.indexOf(urlsToCheck[resultIdx]);
+              if (originalIdx !== -1) {
+                updatedResults[i + originalIdx] = { ...updatedResults[i + originalIdx], followStatus: result.followStatus };
+              }
+            });
+          } catch (err) {
+            batch.forEach((url, idx) => {
+              if (updatedResults[i + idx]?.followStatus === 'Checking...') {
+                updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: 'Error' };
+              }
+            });
+          }
+        }
+        setResults([...updatedResults]);
+        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking follow status...' });
+        if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
     // PHASE 4: Client-side fallback for follow check errors
     if (checkFollow) {
       const errorUrls = updatedResults
         .map((r, idx) => ({ ...r, idx }))
-        .filter((r) => r.followStatus === 'Error');
+        .filter((r) => r.followStatus === 'Error' || (r.followStatus !== 'N/A' && r.followStatus !== '-'));
 
       if (errorUrls.length > 0) {
         setProgress({ current: 0, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
 
         for (let i = 0; i < errorUrls.length; i++) {
-          const { url, idx } = errorUrls[i];
+          const { url, idx, followStatus } = errorUrls[i];
+          // Skip if already set to N/A or user didn't select follow check for this URL
+          if (followStatus === 'N/A' || followStatus === '-') continue;
+
           try {
             const result = await clientSideFollowCheck(url, targetDomain);
             if (result) {
@@ -1033,7 +1153,7 @@ export default function Home() {
         )}
 
         {hasResults && <StatsCards results={results} />}
-        {results.length > 0 && <ResultsTable results={results} filter={filter} setFilter={setFilter} />}
+        {results.length > 0 && <ResultsTable results={results} filter={filter} setFilter={setFilter} onRecheckIndex={recheckIndex} onRecheckStatus={recheckStatus} onRecheckFollow={recheckFollow} isChecking={isChecking} />}
       </main>
 
       <Footer />
