@@ -52,55 +52,65 @@ function getStatusCategory(code) {
 }
 
 async function checkStatusCode(url) {
-  try {
-    // Strategy: Follow redirects to get FINAL status code
-    let response;
+  const maxAttempts = 2;
 
-    // Try GET request with redirect: 'follow' to get final status
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'User-Agent': getRandomUserAgent(),
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        },
-        signal: AbortSignal.timeout(15000),
-        redirect: 'follow', // Follow all redirects, get FINAL page status
-      });
-    } catch (fetchError) {
-      // If GET fails completely, try HEAD
+      // Strategy: Follow redirects to get FINAL status code
+      let response;
+
+      // Try GET request with redirect: 'follow' to get final status
       try {
         response = await fetch(url, {
-          method: 'HEAD',
+          method: 'GET',
           headers: {
             'User-Agent': getRandomUserAgent(),
-            'Accept': '*/*',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
           },
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(20000),
           redirect: 'follow',
         });
-      } catch {
-        throw fetchError;
+      } catch (fetchError) {
+        // If GET fails completely, try HEAD
+        try {
+          response = await fetch(url, {
+            method: 'HEAD',
+            headers: {
+              'User-Agent': getRandomUserAgent(),
+              'Accept': '*/*',
+            },
+            signal: AbortSignal.timeout(15000),
+            redirect: 'follow',
+          });
+        } catch {
+          throw fetchError;
+        }
       }
-    }
 
-    const code = response.status;
-    const wasRedirected = response.redirected || false;
-    const finalUrl = response.url || url;
+      const code = response.status;
+      const wasRedirected = response.redirected || false;
+      const finalUrl = response.url || url;
 
-    return {
-      url,
-      statusCode: code,
-      statusLabel: getStatusLabel(code, wasRedirected),
-      category: getStatusCategory(code),
-      redirected: wasRedirected,
-      finalUrl: wasRedirected ? finalUrl : null,
-    };
-  } catch (error) {
-    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-      return { url, statusCode: 0, statusLabel: 'Timeout', category: 'error' };
+      return {
+        url,
+        statusCode: code,
+        statusLabel: getStatusLabel(code, wasRedirected),
+        category: getStatusCategory(code),
+        redirected: wasRedirected,
+        finalUrl: wasRedirected ? finalUrl : null,
+      };
+    } catch (error) {
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+        return { url, statusCode: 0, statusLabel: 'Timeout', category: 'error' };
+      }
+      return { url, statusCode: 0, statusLabel: 'Error', category: 'error' };
     }
-    return { url, statusCode: 0, statusLabel: 'Error', category: 'error' };
   }
 }
 

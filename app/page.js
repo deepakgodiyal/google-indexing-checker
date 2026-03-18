@@ -510,6 +510,16 @@ const CORS_PROXIES = [
   'https://cors-anywhere.herokuapp.com/',
 ];
 
+// Extract clean domain from any input (full URL or just domain)
+function cleanDomainInput(input) {
+  if (!input) return '';
+  let cleaned = input.trim().toLowerCase();
+  cleaned = cleaned.replace(/^https?:\/\//, '');
+  cleaned = cleaned.replace(/^www\./, '');
+  cleaned = cleaned.replace(/\/.*$/, '');
+  return cleaned;
+}
+
 async function clientSideFollowCheck(url, targetDomain) {
   for (const proxy of CORS_PROXIES) {
     try {
@@ -526,8 +536,8 @@ async function clientSideFollowCheck(url, targetDomain) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
-      // Normalize target domain for comparison
-      const normalizedTarget = targetDomain ? targetDomain.replace('www.', '').toLowerCase() : '';
+      // Normalize target domain for comparison (handles full URLs too)
+      const normalizedTarget = cleanDomainInput(targetDomain);
 
       // Check 1: Meta robots nofollow (page-level)
       const metaRobots = doc.querySelector('meta[name="robots"]');

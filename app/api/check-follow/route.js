@@ -66,6 +66,19 @@ function getDomain(url) {
   }
 }
 
+// Extract clean domain from any input (full URL or just domain)
+function cleanDomain(input) {
+  if (!input) return '';
+  let cleaned = input.trim().toLowerCase();
+  // Remove protocol
+  cleaned = cleaned.replace(/^https?:\/\//, '');
+  // Remove www.
+  cleaned = cleaned.replace(/^www\./, '');
+  // Remove trailing slash and path
+  cleaned = cleaned.replace(/\/.*$/, '');
+  return cleaned;
+}
+
 // Fetch with retry - 2 attempts, 15s timeout each
 async function fetchWithRetry(url) {
   const maxAttempts = 2;
@@ -100,7 +113,7 @@ function analyzeLinks($, container, pageDomain, targetDomain) {
   let nofollowCount = 0;
 
   const links = container ? $(container).find('a[href]') : $('a[href]');
-  const normalizedTarget = targetDomain ? targetDomain.replace('www.', '').toLowerCase() : '';
+  const normalizedTarget = targetDomain ? cleanDomain(targetDomain) : '';
 
   links.each((_, el) => {
     const href = ($(el).attr('href') || '').trim();
@@ -147,7 +160,7 @@ function analyzeLinks($, container, pageDomain, targetDomain) {
 
 // Targeted domain check - searches ENTIRE page for links to specific domain
 function analyzeTargetedLinks($, targetDomain) {
-  const normalizedTarget = targetDomain.replace('www.', '').toLowerCase();
+  const normalizedTarget = cleanDomain(targetDomain);
   let targetLinksFound = 0;
   let targetNofollowCount = 0;
 
