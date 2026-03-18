@@ -372,6 +372,7 @@ function ResultsTable({ results, filter, setFilter }) {
       case 'Checking...': return 'checking';
       case 'N/A': return 'na-status';
       case 'No Link Found': return 'na-status';
+      case 'Same Domain': return 'same-domain';
       default: return 'error';
     }
   };

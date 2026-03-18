@@ -196,6 +196,15 @@ function analyzeTargetedLinks($, targetDomain) {
 
 async function checkFollowStatus(url, targetDomain) {
   try {
+    // If URL domain matches target domain, skip check (checking own site is meaningless)
+    if (targetDomain) {
+      const urlDomain = getDomain(url).toLowerCase();
+      const normalizedTarget = cleanDomain(targetDomain);
+      if (urlDomain === normalizedTarget || urlDomain.endsWith('.' + normalizedTarget) || normalizedTarget.endsWith('.' + urlDomain)) {
+        return { url, followStatus: 'Same Domain', source: 'URL belongs to your own target domain - only check external/third-party URLs' };
+      }
+    }
+
     const response = await fetchWithRetry(url);
 
     if (!response.ok) {

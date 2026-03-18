@@ -93,6 +93,45 @@ async function checkStatusCode(url) {
       const wasRedirected = response.redirected || false;
       const finalUrl = response.url || url;
 
+      // Soft 404 detection: server returns 200 but page shows "not found" content
+      if (code >= 200 && code < 300) {
+        try {
+          const html = await response.text();
+          const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+          const title = titleMatch ? titleMatch[1].toLowerCase() : '';
+          const bodyText = html.replace(/<[^>]+>/g, ' ').toLowerCase();
+          const first2000 = bodyText.substring(0, 2000);
+
+          // Check for common "not found" signals in title or early content
+          const soft404Patterns = [
+            /page\s*(not|no)\s*found/i,
+            /404\s*(error|not found|page)/i,
+            /not\s*found/i,
+            /does\s*n.t\s*exist/i,
+            /no\s*longer\s*(available|exists)/i,
+            /página\s*no\s*encontrada/i,
+          ];
+
+          const titleIs404 = soft404Patterns.some(p => p.test(title));
+          const contentIs404 = soft404Patterns.some(p => p.test(first2000));
+
+          // Only flag as soft 404 if title clearly says 404/not found
+          // OR if body content is very short (< 500 chars) and has "not found" pattern
+          if (titleIs404 || (contentIs404 && first2000.trim().length < 500)) {
+            return {
+              url,
+              statusCode: code,
+              statusLabel: 'Soft 404',
+              category: 'client-error',
+              redirected: wasRedirected,
+              finalUrl: wasRedirected ? finalUrl : null,
+            };
+          }
+        } catch {
+          // If we can't read body, just report the status code as-is
+        }
+      }
+
       return {
         url,
         statusCode: code,
