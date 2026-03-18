@@ -126,24 +126,30 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, targetDomain, onSave
           </p>
 
           <div className="form-group">
-            <label className="form-label">Your Name</label>
+            <label className="form-label">Display Name</label>
             <input
               type="text"
               className="form-input"
               placeholder="e.g. Vishal Kumar"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              autoComplete="off"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
 
           <div className="form-group">
             <label className="form-label">Serper.dev API Key</label>
             <input
-              type="password"
+              type="text"
               className="form-input"
               placeholder="Paste your API key here..."
               value={key}
               onChange={(e) => setKey(e.target.value)}
+              autoComplete="off"
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
 
@@ -155,6 +161,7 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, targetDomain, onSave
               placeholder="e.g. expertmarketresearch.com"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
+              autoComplete="off"
             />
             <p style={{ fontSize: '12px', color: '#8892a4', marginTop: '6px', lineHeight: '1.5' }}>
               Only links pointing to this domain will be checked for Dofollow/Nofollow. Leave empty to check all outbound links (old behavior).
@@ -199,11 +206,11 @@ function SetupScreen({ onSave }) {
       <div className="setup-card">
         <div className="setup-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
         </div>
-        <h2 className="setup-title">Welcome! Set Up Your API Key</h2>
+        <h2 className="setup-title">Welcome! Set Up Your SEO Tool</h2>
         <p className="setup-description">
           To use this tool, you need a free Serper.dev API key. Each key gets <strong>2,500 free searches</strong> per month.
         </p>
@@ -224,24 +231,30 @@ function SetupScreen({ onSave }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label">Your Name</label>
+          <label className="form-label">Display Name</label>
           <input
             type="text"
             className="form-input"
             placeholder="e.g. Vishal Kumar"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            autoComplete="off"
+            data-lpignore="true"
+            data-form-type="other"
           />
         </div>
 
         <div className="form-group">
           <label className="form-label">Serper.dev API Key</label>
           <input
-            type="password"
+            type="text"
             className="form-input"
             placeholder="Paste your API key here..."
             value={key}
             onChange={(e) => setKey(e.target.value)}
+            autoComplete="off"
+            data-lpignore="true"
+            data-form-type="other"
           />
         </div>
 
@@ -253,6 +266,7 @@ function SetupScreen({ onSave }) {
             placeholder="e.g. expertmarketresearch.com"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
+            autoComplete="off"
           />
           <p style={{ fontSize: '12px', color: '#8892a4', marginTop: '6px', lineHeight: '1.5' }}>
             Only links pointing to this domain will be checked. Leave empty to check all outbound links.
