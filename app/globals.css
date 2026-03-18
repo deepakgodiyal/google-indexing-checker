@@ -609,6 +609,7 @@ body {
   align-items: center;
   gap: 4px;
   white-space: nowrap;
+  min-width: 140px;
 }
 
 .recheck-btn {
@@ -617,6 +618,7 @@ body {
   justify-content: center;
   width: 20px;
   height: 20px;
+  min-width: 20px;
   border: none;
   background: rgba(0, 41, 255, 0.08);
   border-radius: 50%;
@@ -627,9 +629,15 @@ body {
   padding: 0;
 }
 
-.recheck-btn:hover {
+.recheck-btn:hover:not(.recheck-hidden) {
   background: rgba(0, 41, 255, 0.15);
   transform: rotate(180deg);
+}
+
+.recheck-btn.recheck-hidden {
+  opacity: 0;
+  pointer-events: none;
+  cursor: default;
 }
 
 .status-badge {
