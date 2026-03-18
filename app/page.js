@@ -1000,32 +1000,33 @@ export default function Home() {
       }
     }
 
-    // PHASE 4: Client-side fallback for follow check errors
+    // PHASE 4: Client-side fallback for "Error" and "No Link Found" results
+    // Some sites (LinkedIn, csfactor) need JavaScript to render links
+    // Browser can execute JS, so retry these from client-side via CORS proxy
     if (checkFollow) {
-      const errorUrls = updatedResults
+      const retryUrls = updatedResults
         .map((r, idx) => ({ ...r, idx }))
-        .filter((r) => r.followStatus === 'Error' || (r.followStatus !== 'N/A' && r.followStatus !== '-'));
+        .filter((r) => r.followStatus === 'Error' || r.followStatus === 'No Link Found');
 
-      if (errorUrls.length > 0) {
-        setProgress({ current: 0, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
+      if (retryUrls.length > 0) {
+        setProgress({ current: 0, total: retryUrls.length, phase: 'Retrying from browser (JS pages)...' });
 
-        for (let i = 0; i < errorUrls.length; i++) {
-          const { url, idx, followStatus } = errorUrls[i];
-          // Skip if already set to N/A or user didn't select follow check for this URL
-          if (followStatus === 'N/A' || followStatus === '-') continue;
+        for (let i = 0; i < retryUrls.length; i++) {
+          const { url, idx } = retryUrls[i];
 
           try {
             const result = await clientSideFollowCheck(url, targetDomain);
             if (result) {
               updatedResults[idx] = { ...updatedResults[idx], followStatus: result };
             } else {
-              updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+              // Keep original status if browser also can't find
+              // Don't overwrite "No Link Found" with N/A
             }
           } catch {
-            updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+            // Keep original status on error
           }
           setResults([...updatedResults]);
-          setProgress({ current: i + 1, total: errorUrls.length, phase: 'Retrying failed URLs from browser...' });
+          setProgress({ current: i + 1, total: retryUrls.length, phase: 'Retrying from browser (JS pages)...' });
         }
       }
     }
