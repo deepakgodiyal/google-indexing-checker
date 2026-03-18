@@ -582,8 +582,6 @@ body {
 .results-table td {
   padding: 14px 14px;
   font-size: 14px;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .results-table td:first-child {
