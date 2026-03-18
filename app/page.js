@@ -97,7 +97,7 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, targetDomain, onSave
       alert('Please enter your Serper.dev API key.');
       return;
     }
-    onSave(name.trim(), key.trim(), domain.trim());
+    onSave(name.trim(), key.trim(), cleanDomainInput(domain));
     setSaved(true);
     setTimeout(() => {
       onClose();
@@ -161,10 +161,11 @@ function SettingsModal({ isOpen, onClose, userName, apiKey, targetDomain, onSave
               placeholder="e.g. expertmarketresearch.com"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
+              onBlur={(e) => setDomain(cleanDomainInput(e.target.value))}
               autoComplete="off"
             />
             <p style={{ fontSize: '12px', color: '#8892a4', marginTop: '6px', lineHeight: '1.5' }}>
-              Only links pointing to this domain will be checked for Dofollow/Nofollow. Leave empty to check all outbound links (old behavior).
+              Enter only the domain name, e.g. <strong>expertmarketresearch.com</strong> (not the full URL). https:// and www will be removed automatically.
             </p>
           </div>
 
@@ -198,7 +199,7 @@ function SetupScreen({ onSave }) {
       alert('Please enter your Serper.dev API key.');
       return;
     }
-    onSave(name.trim(), key.trim(), domain.trim());
+    onSave(name.trim(), key.trim(), cleanDomainInput(domain));
   };
 
   return (
@@ -266,10 +267,11 @@ function SetupScreen({ onSave }) {
             placeholder="e.g. expertmarketresearch.com"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
+            onBlur={(e) => setDomain(cleanDomainInput(e.target.value))}
             autoComplete="off"
           />
           <p style={{ fontSize: '12px', color: '#8892a4', marginTop: '6px', lineHeight: '1.5' }}>
-            Only links pointing to this domain will be checked. Leave empty to check all outbound links.
+            Enter only the domain name, e.g. <strong>expertmarketresearch.com</strong> (not the full URL). https:// and www will be removed automatically.
           </p>
         </div>
 

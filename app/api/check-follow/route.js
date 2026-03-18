@@ -202,16 +202,64 @@ async function checkFollowStatus(url, targetDomain) {
       return { url, followStatus: 'Error', detail: `HTTP ${response.status}` };
     }
 
-    // Check 1: X-Robots-Tag header (page-level nofollow)
+    const html = await response.text();
+    const $ = cheerio.load(html);
+
+    // ===== TARGET DOMAIN MODE =====
+    // If targetDomain is set, FIRST check if links to target exist
+    // Only then check page-level nofollow (meta robots, x-robots-tag)
+    if (targetDomain) {
+      const targeted = analyzeTargetedLinks($, targetDomain);
+
+      // If NO links to target domain found, return "No Link Found" immediately
+      // regardless of page-level nofollow settings
+      if (targeted.targetLinksFound === 0) {
+        return { url, followStatus: 'No Link Found', source: `No links to ${targetDomain} found on this page` };
+      }
+
+      // Links to target domain exist - now check page-level nofollow
+      // Page-level nofollow means ALL links on the page are nofollow
+      const xRobotsTag = response.headers.get('x-robots-tag') || '';
+      if (xRobotsTag.toLowerCase().includes('nofollow')) {
+        return { url, followStatus: 'Nofollow', source: 'X-Robots-Tag header (page-level nofollow)' };
+      }
+
+      let pageNofollow = false;
+      $('meta[name="robots"], meta[name="ROBOTS"]').each((_, el) => {
+        const content = ($(el).attr('content') || '').toLowerCase();
+        if (content.includes('nofollow')) pageNofollow = true;
+      });
+      $('meta[name="googlebot"], meta[name="Googlebot"]').each((_, el) => {
+        const content = ($(el).attr('content') || '').toLowerCase();
+        if (content.includes('nofollow')) pageNofollow = true;
+      });
+
+      if (pageNofollow) {
+        return { url, followStatus: 'Nofollow', source: 'Page-level meta nofollow (all links on page are nofollow)' };
+      }
+
+      // Check individual link rel attributes
+      if (targeted.targetNofollowCount > 0) {
+        return {
+          url,
+          followStatus: 'Nofollow',
+          source: `${targeted.targetNofollowCount}/${targeted.targetLinksFound} links to ${targetDomain} have rel=nofollow`,
+        };
+      }
+      return {
+        url,
+        followStatus: 'Dofollow',
+        source: `${targeted.targetLinksFound} links to ${targetDomain} are all dofollow`,
+      };
+    }
+
+    // ===== NO TARGET DOMAIN MODE =====
+    // Check page-level nofollow first
     const xRobotsTag = response.headers.get('x-robots-tag') || '';
     if (xRobotsTag.toLowerCase().includes('nofollow')) {
       return { url, followStatus: 'Nofollow', source: 'X-Robots-Tag header' };
     }
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // Check 2: <meta name="robots" content="...nofollow..."> (page-level)
     let isNofollow = false;
     let source = '';
 
@@ -227,7 +275,6 @@ async function checkFollowStatus(url, targetDomain) {
       return { url, followStatus: 'Nofollow', source };
     }
 
-    // Check 3: <meta name="googlebot" content="...nofollow..."> (page-level)
     $('meta[name="googlebot"], meta[name="Googlebot"]').each((_, el) => {
       const content = ($(el).attr('content') || '').toLowerCase();
       if (content.includes('nofollow')) {
@@ -238,30 +285,6 @@ async function checkFollowStatus(url, targetDomain) {
 
     if (isNofollow) {
       return { url, followStatus: 'Nofollow', source };
-    }
-
-    // ===== TARGET DOMAIN MODE =====
-    // If targetDomain is set, search ENTIRE page for links pointing to that domain
-    if (targetDomain) {
-      const targeted = analyzeTargetedLinks($, targetDomain);
-
-      if (targeted.targetLinksFound > 0) {
-        // If ANY link to target is nofollow → Nofollow
-        if (targeted.targetNofollowCount > 0) {
-          return {
-            url,
-            followStatus: 'Nofollow',
-            source: `${targeted.targetNofollowCount}/${targeted.targetLinksFound} links to ${targetDomain} have rel=nofollow`,
-          };
-        }
-        return {
-          url,
-          followStatus: 'Dofollow',
-          source: `${targeted.targetLinksFound} links to ${targetDomain} are all dofollow`,
-        };
-      }
-
-      return { url, followStatus: 'No Link Found', source: `No links to ${targetDomain} found on this page` };
     }
 
     // ===== OLD BEHAVIOR (no target domain) =====
