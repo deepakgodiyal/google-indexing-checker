@@ -100,28 +100,50 @@ async function checkStatusCode(url) {
           const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
           const title = titleMatch ? titleMatch[1].toLowerCase() : '';
           const bodyText = html.replace(/<[^>]+>/g, ' ').toLowerCase();
-          const first2000 = bodyText.substring(0, 2000);
+          const first3000 = bodyText.substring(0, 3000);
 
-          // Check for common "not found" signals in title or early content
-          const soft404Patterns = [
-            /page\s*(not|no)\s*found/i,
-            /404\s*(error|not found|page)/i,
-            /not\s*found/i,
-            /does\s*n.t\s*exist/i,
-            /no\s*longer\s*(available|exists)/i,
-            /página\s*no\s*encontrada/i,
+          // Patterns for title (strict match)
+          const title404Patterns = [
+            /404/,
+            /not\s*found/,
+            /page\s*(not|no)\s*found/,
+            /error/,
+            /página\s*no\s*encontrada/,
+            /không\s*tìm\s*thấy/,
+            /tidak\s*ditemukan/,
           ];
 
-          const titleIs404 = soft404Patterns.some(p => p.test(title));
-          const contentIs404 = soft404Patterns.some(p => p.test(first2000));
+          // Patterns for body content (broader match)
+          const body404Patterns = [
+            /page\s*(not|no|can.t be)\s*found/,
+            /404\s*(error|not found|page)?/,
+            /this\s*page\s*(doesn.t|does not|could not)\s*(exist|be found)/,
+            /no\s*longer\s*(available|exists|found)/,
+            /content\s*(not|no)\s*(found|available)/,
+            /removed\s*or\s*deleted/,
+            /doesn.t\s*exist/,
+            /does\s*not\s*exist/,
+            /página\s*no\s*encontrada/,
+            /the\s*requested\s*(url|page|resource)\s*(was|is)?\s*not\s*found/,
+            /sorry.*page.*not.*found/,
+            /oops.*not.*found/,
+            /we\s*couldn.t\s*find/,
+            /không\s*tìm\s*thấy/,
+            /bài\s*viết\s*không\s*tồn\s*tại/,
+          ];
 
-          // Only flag as soft 404 if title clearly says 404/not found
-          // OR if body content is very short (< 500 chars) and has "not found" pattern
-          if (titleIs404 || (contentIs404 && first2000.trim().length < 500)) {
+          const titleIs404 = title404Patterns.some(p => p.test(title));
+          const contentIs404 = body404Patterns.some(p => p.test(first3000));
+
+          // Flag as 404 if:
+          // 1. Title clearly says 404/not found/error
+          // 2. Body has "not found" pattern AND content is short (< 1500 chars = likely error page)
+          // 3. Body has "not found" pattern AND title is generic/empty
+          if (titleIs404 || (contentIs404 && first3000.trim().length < 1500) || (contentIs404 && title.length < 5)) {
             return {
               url,
               statusCode: code,
-              statusLabel: 'Soft 404',
+              statusLabel: '404 Not Found',
               category: 'client-error',
               redirected: wasRedirected,
               finalUrl: wasRedirected ? finalUrl : null,
