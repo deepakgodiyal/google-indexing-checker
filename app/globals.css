@@ -546,13 +546,12 @@ body {
 .results-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
 }
 
 .results-table thead th {
-  padding: 14px 14px;
+  padding: 12px 8px;
   text-align: left;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--medium-gray);
   text-transform: uppercase;
@@ -563,7 +562,7 @@ body {
 }
 
 .results-table thead th:first-child {
-  padding-left: 28px;
+  padding-left: 16px;
 }
 
 .results-table tbody tr {
@@ -580,43 +579,44 @@ body {
 }
 
 .results-table td {
-  padding: 14px 14px;
-  font-size: 14px;
+  padding: 10px 8px;
+  font-size: 13px;
 }
 
 .results-table td:first-child {
-  padding-left: 28px;
+  padding-left: 16px;
 }
 
 .row-number {
   color: var(--medium-gray);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  min-width: 40px;
+  min-width: 30px;
 }
 
 .url-cell {
-  max-width: 300px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text-primary);
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .status-cell {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .recheck-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border: none;
   background: rgba(0, 41, 255, 0.08);
   border-radius: 50%;
@@ -635,10 +635,10 @@ body {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
+  gap: 4px;
+  padding: 4px 10px;
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }

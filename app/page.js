@@ -407,12 +407,12 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
         <table className="results-table">
           <thead>
             <tr>
-              <th style={{width:'40px'}}>#</th>
-              <th>URL</th>
-              <th style={{width:'140px',whiteSpace:'nowrap'}}>Index Status</th>
-              <th style={{width:'160px',whiteSpace:'nowrap'}}>Status Code</th>
-              <th style={{width:'155px',whiteSpace:'nowrap'}}>Follow Status</th>
-              <th style={{width:'155px',whiteSpace:'nowrap'}}>Google Search</th>
+              <th style={{width:'30px'}}>#</th>
+              <th style={{width:'28%'}}>URL</th>
+              <th style={{whiteSpace:'nowrap'}}>Index Status</th>
+              <th style={{whiteSpace:'nowrap'}}>Status Code</th>
+              <th style={{whiteSpace:'nowrap'}}>Follow Status</th>
+              <th style={{whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
           </thead>
           <tbody>
@@ -437,7 +437,7 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                         </span>
                         {!isChecking && result.status !== 'Checking...' && result.status !== '-' && (
                           <button className="recheck-btn" onClick={() => onRecheckIndex(originalIndex)} title="Recheck Index Status">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                           </button>
                         )}
                       </div>
@@ -450,7 +450,7 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                         </span>
                         {!isChecking && result.statusCode !== 'Checking...' && result.statusCode !== '-' && (
                           <button className="recheck-btn" onClick={() => onRecheckStatus(originalIndex)} title="Recheck Status Code">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                           </button>
                         )}
                       </div>
@@ -463,7 +463,7 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                         </span>
                         {!isChecking && result.followStatus !== 'Checking...' && result.followStatus !== '-' && (
                           <button className="recheck-btn" onClick={() => onRecheckFollow(originalIndex)} title="Recheck Follow Status">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                           </button>
                         )}
                       </div>
