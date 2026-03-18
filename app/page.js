@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import { setUserOnline, setUserOffline, listenOnlineUsers } from './lib/firebase';
 
 // ==========================================
 // HEADER COMPONENT
 // ==========================================
-function Header({ userName, onSettingsClick }) {
+function Header({ userName, onSettingsClick, onlineUsers, showOnlinePanel, setShowOnlinePanel }) {
   return (
     <header className="header">
       <div className="header-inner">
@@ -16,6 +17,41 @@ function Header({ userName, onSettingsClick }) {
           </div>
         </a>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Online Users Button */}
+          <div className="online-btn-wrapper">
+            <button
+              className="online-btn"
+              onClick={() => setShowOnlinePanel(!showOnlinePanel)}
+              title="Online Users"
+            >
+              <span className="online-dot-pulse"></span>
+              <span>{onlineUsers.length} Online</span>
+            </button>
+
+            {/* Dropdown Panel */}
+            {showOnlinePanel && (
+              <div className="online-panel">
+                <div className="online-panel-header">
+                  <span className="online-panel-title">Online Users ({onlineUsers.length})</span>
+                  <button className="online-panel-close" onClick={() => setShowOnlinePanel(false)}>✕</button>
+                </div>
+                <div className="online-panel-list">
+                  {onlineUsers.length === 0 ? (
+                    <div className="online-panel-empty">No one is online</div>
+                  ) : (
+                    onlineUsers.map((user) => (
+                      <div key={user.id} className="online-user-item">
+                        <span className="online-user-avatar">{user.name.charAt(0).toUpperCase()}</span>
+                        <span className="online-user-name">{user.name}</span>
+                        <span className="online-user-dot"></span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {userName && (
             <div className="user-badge">
               <span className="user-avatar">{userName.charAt(0).toUpperCase()}</span>
@@ -630,6 +666,8 @@ export default function Home() {
   const [checkIndex, setCheckIndex] = useState(true);
   const [checkFollow, setCheckFollow] = useState(true);
   const [checkStatus, setCheckStatus] = useState(true);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [showOnlinePanel, setShowOnlinePanel] = useState(false);
 
   // Load saved settings on mount
   useEffect(() => {
@@ -640,6 +678,27 @@ export default function Home() {
     setApiKey(savedKey);
     setTargetDomain(savedDomain);
     setIsSetup(savedName && savedKey ? true : false);
+
+    // If user is already set up, mark them online
+    if (savedName) {
+      setUserOnline(savedName);
+    }
+
+    // Listen to online users
+    const unsubscribe = listenOnlineUsers((users) => {
+      setOnlineUsers(users);
+    });
+
+    // Cleanup: mark offline on tab close
+    const handleBeforeUnload = () => {
+      setUserOffline();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
   }, []);
 
   // Save settings handler
@@ -651,6 +710,8 @@ export default function Home() {
     localStorage.setItem('gic_api_key', key);
     localStorage.setItem('gic_target_domain', domain || '');
     setIsSetup(true);
+    // Mark user online with their name in Firebase
+    setUserOnline(name);
   };
 
   const urlCount = urls.split('\n').filter((line) => line.trim().length > 0).length;
@@ -846,7 +907,7 @@ export default function Home() {
 
   return (
     <>
-      <Header userName={userName} onSettingsClick={() => setShowSettings(true)} />
+      <Header userName={userName} onSettingsClick={() => setShowSettings(true)} onlineUsers={onlineUsers} showOnlinePanel={showOnlinePanel} setShowOnlinePanel={setShowOnlinePanel} />
       <Hero />
 
       <SettingsModal
