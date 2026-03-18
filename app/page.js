@@ -299,7 +299,7 @@ function Hero() {
         </h1>
         <p>
           Paste your URLs below and instantly check Google index status plus
-          Dofollow/Nofollow status. Supports up to 100 URLs at once.
+          Dofollow/Nofollow status. Supports up to 500 URLs at once.
         </p>
       </div>
     </section>
@@ -865,8 +865,8 @@ export default function Home() {
       setError('Please paste at least one URL to check.');
       return;
     }
-    if (urlList.length > 100) {
-      setError('Maximum 100 URLs allowed per check.');
+    if (urlList.length > 500) {
+      setError('Maximum 500 URLs allowed per check.');
       return;
     }
 
