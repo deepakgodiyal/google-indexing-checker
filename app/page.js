@@ -431,41 +431,41 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                     <td className="url-cell" title={result.url}><a href={result.url} target="_blank" rel="noopener noreferrer" className="url-link">{result.url}</a></td>
                     <td>
                       <div className="status-cell">
-                        <span className={`status-badge ${getStatusClass(result.status)}`}>
-                          <span className={`status-dot ${getStatusClass(result.status)}`}></span>
-                          {result.status}
-                        </span>
                         {!isChecking && result.status !== 'Checking...' && result.status !== '-' && (
                           <button className="recheck-btn" onClick={() => onRecheckIndex(originalIndex)} title="Recheck Index Status">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                           </button>
                         )}
+                        <span className={`status-badge ${getStatusClass(result.status)}`}>
+                          <span className={`status-dot ${getStatusClass(result.status)}`}></span>
+                          {result.status}
+                        </span>
                       </div>
                     </td>
                     <td>
                       <div className="status-cell">
-                        <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
-                          <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
-                          {result.statusCode || 'Checking...'}
-                        </span>
                         {!isChecking && result.statusCode !== 'Checking...' && result.statusCode !== '-' && (
                           <button className="recheck-btn" onClick={() => onRecheckStatus(originalIndex)} title="Recheck Status Code">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                           </button>
                         )}
+                        <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
+                          <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
+                          {result.statusCode || 'Checking...'}
+                        </span>
                       </div>
                     </td>
                     <td>
                       <div className="status-cell">
-                        <span className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}>
-                          <span className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}></span>
-                          {result.followStatus || 'Checking...'}
-                        </span>
                         {!isChecking && result.followStatus !== 'Checking...' && result.followStatus !== '-' && (
                           <button className="recheck-btn" onClick={() => onRecheckFollow(originalIndex)} title="Recheck Follow Status">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                           </button>
                         )}
+                        <span className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}>
+                          <span className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}></span>
+                          {result.followStatus || 'Checking...'}
+                        </span>
                       </div>
                     </td>
                     <td>
