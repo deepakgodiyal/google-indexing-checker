@@ -163,6 +163,7 @@ function analyzeTargetedLinks($, targetDomain) {
   const normalizedTarget = cleanDomain(targetDomain);
   let targetLinksFound = 0;
   let targetNofollowCount = 0;
+  let targetDofollowCount = 0;
 
   $('a[href]').each((_, el) => {
     const href = ($(el).attr('href') || '').trim();
@@ -179,6 +180,17 @@ function analyzeTargetedLinks($, targetDomain) {
         return;
       }
     } catch {
+      // Handle malformed URLs - check if href text contains the target domain
+      const hrefLower = href.toLowerCase();
+      if (hrefLower.includes(normalizedTarget)) {
+        targetLinksFound++;
+        const rel = ($(el).attr('rel') || '').toLowerCase();
+        if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
+          targetNofollowCount++;
+        } else {
+          targetDofollowCount++;
+        }
+      }
       return;
     }
 
@@ -187,11 +199,52 @@ function analyzeTargetedLinks($, targetDomain) {
       const rel = ($(el).attr('rel') || '').toLowerCase();
       if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
         targetNofollowCount++;
+      } else {
+        targetDofollowCount++;
       }
     }
   });
 
-  return { targetLinksFound, targetNofollowCount };
+  // Also check anchor text and surrounding text for target domain mentions with links
+  $('a').each((_, el) => {
+    const href = ($(el).attr('href') || '').trim();
+    const text = ($(el).text() || '').trim().toLowerCase();
+
+    // Skip if already counted or no href
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+
+    // Check if link text or href contains target domain (catches malformed URLs)
+    if ((text.includes(normalizedTarget) || href.toLowerCase().includes(normalizedTarget)) && !href.startsWith('mailto:') && !href.startsWith('tel:')) {
+      // Only count if not already counted by URL matching above
+      let alreadyCounted = false;
+      try {
+        if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('//')) {
+          const fullUrl = href.startsWith('//') ? 'https:' + href : href;
+          const ld = getDomain(fullUrl).toLowerCase();
+          if (ld === normalizedTarget || ld.endsWith('.' + normalizedTarget)) {
+            alreadyCounted = true;
+          }
+        }
+      } catch {
+        // malformed URL - might have been counted in catch block above
+        if (href.toLowerCase().includes(normalizedTarget)) {
+          alreadyCounted = true;
+        }
+      }
+
+      if (!alreadyCounted && text.includes(normalizedTarget)) {
+        targetLinksFound++;
+        const rel = ($(el).attr('rel') || '').toLowerCase();
+        if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
+          targetNofollowCount++;
+        } else {
+          targetDofollowCount++;
+        }
+      }
+    }
+  });
+
+  return { targetLinksFound, targetNofollowCount, targetDofollowCount };
 }
 
 async function checkFollowStatus(url, targetDomain) {
@@ -248,17 +301,19 @@ async function checkFollowStatus(url, targetDomain) {
       }
 
       // Check individual link rel attributes
-      if (targeted.targetNofollowCount > 0) {
+      // SEO Logic: If ANY link to target domain is dofollow, that page passes link juice
+      // So: any dofollow = Dofollow result. Only ALL nofollow = Nofollow result.
+      if (targeted.targetDofollowCount > 0) {
         return {
           url,
-          followStatus: 'Nofollow',
-          source: `${targeted.targetNofollowCount}/${targeted.targetLinksFound} links to ${targetDomain} have rel=nofollow`,
+          followStatus: 'Dofollow',
+          source: `${targeted.targetDofollowCount}/${targeted.targetLinksFound} links to ${targetDomain} are dofollow`,
         };
       }
       return {
         url,
-        followStatus: 'Dofollow',
-        source: `${targeted.targetLinksFound} links to ${targetDomain} are all dofollow`,
+        followStatus: 'Nofollow',
+        source: `All ${targeted.targetNofollowCount} links to ${targetDomain} have rel=nofollow`,
       };
     }
 

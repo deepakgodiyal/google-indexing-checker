@@ -605,8 +605,9 @@ async function clientSideFollowCheck(url, targetDomain) {
         });
 
         if (targetLinksFound > 0) {
-          // If ANY link to target domain is nofollow, mark as Nofollow
-          return targetNofollowCount > 0 ? 'Nofollow' : 'Dofollow';
+          // SEO Logic: If ANY link is dofollow, page passes link juice = Dofollow
+          const dofollowCount = targetLinksFound - targetNofollowCount;
+          return dofollowCount > 0 ? 'Dofollow' : 'Nofollow';
         }
 
         return 'No Link Found';
