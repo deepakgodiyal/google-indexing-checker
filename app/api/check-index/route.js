@@ -41,43 +41,43 @@ function isRateLimited(ip) {
 async function detectRedirects(url) {
   const statusCodes = [];
   let currentUrl = url;
-  let followRedirects = true;
-  const maxRedirects = 10;
   let redirectCount = 0;
+  const maxRedirects = 10;
 
   try {
-    while (followRedirects && redirectCount < maxRedirects) {
+    for (let i = 0; i < maxRedirects; i++) {
       try {
         const response = await fetch(currentUrl, {
           method: 'GET',
-          redirect: 'manual', // Don't follow redirects automatically
+          redirect: 'manual',
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
           },
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(6000),
         });
 
         const statusCode = response.status;
         statusCodes.push(statusCode);
 
-        // Check if it's a redirect status code
-        if ([301, 302, 303, 307, 308].includes(statusCode)) {
-          const location = response.headers.get('location');
-          if (location) {
-            // Handle relative redirects
-            const redirectUrl = location.startsWith('http')
-              ? location
-              : new URL(location, currentUrl).toString();
-            currentUrl = redirectUrl;
-            redirectCount++;
-          } else {
-            followRedirects = false;
-          }
-        } else {
-          followRedirects = false;
+        // If not a redirect, stop
+        if (![301, 302, 303, 307, 308].includes(statusCode)) {
+          break;
         }
-      } catch (fetchError) {
-        // If fetch fails, try HEAD as fallback
+
+        // Try to get redirect location
+        const location = response.headers.get('location');
+        if (!location) {
+          break;
+        }
+
+        // Build redirect URL
+        currentUrl = location.startsWith('http')
+          ? location
+          : new URL(location, currentUrl).toString();
+        redirectCount++;
+
+      } catch (err) {
+        // Try HEAD as fallback
         try {
           const headResponse = await fetch(currentUrl, {
             method: 'HEAD',
@@ -85,36 +85,33 @@ async function detectRedirects(url) {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             },
-            signal: AbortSignal.timeout(8000),
+            signal: AbortSignal.timeout(6000),
           });
 
           const statusCode = headResponse.status;
-          statusCodes.push(statusCode);
-
-          if ([301, 302, 303, 307, 308].includes(statusCode)) {
-            const location = headResponse.headers.get('location');
-            if (location) {
-              const redirectUrl = location.startsWith('http')
-                ? location
-                : new URL(location, currentUrl).toString();
-              currentUrl = redirectUrl;
-              redirectCount++;
-            } else {
-              followRedirects = false;
-            }
-          } else {
-            followRedirects = false;
+          if (!statusCodes.includes(statusCode) || statusCodes.length === 0) {
+            statusCodes.push(statusCode);
           }
+
+          if (![301, 302, 303, 307, 308].includes(statusCode)) {
+            break;
+          }
+
+          const location = headResponse.headers.get('location');
+          if (!location) break;
+
+          currentUrl = location.startsWith('http') ? location : new URL(location, currentUrl).toString();
+          redirectCount++;
         } catch {
-          followRedirects = false;
+          break;
         }
       }
     }
 
     return {
-      statusCodes: statusCodes,
+      statusCodes,
       finalUrl: currentUrl,
-      redirectCount: redirectCount,
+      redirectCount,
       isRedirected: redirectCount > 0,
     };
   } catch (error) {
@@ -123,7 +120,6 @@ async function detectRedirects(url) {
       finalUrl: url,
       redirectCount: 0,
       isRedirected: false,
-      error: error.message,
     };
   }
 }
@@ -247,11 +243,16 @@ export async function POST(request) {
     // Check each URL with a small delay between requests
     const results = [];
     for (let i = 0; i < urls.length; i++) {
-      // Check for redirects
-      const redirectData = await detectRedirects(urls[i]);
-
       // Check Google index
       const indexResult = await checkGoogleIndex(urls[i], apiKey);
+
+      // Check for redirects (with error handling)
+      let redirectData = { statusCodes: [], finalUrl: urls[i], redirectCount: 0, isRedirected: false };
+      try {
+        redirectData = await detectRedirects(urls[i]);
+      } catch (err) {
+        console.error(`Redirect detection error for ${urls[i]}:`, err.message);
+      }
 
       // Combine results
       const combinedResult = {
