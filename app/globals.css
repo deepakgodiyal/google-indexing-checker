@@ -1333,39 +1333,33 @@ body {
 }
 
 .code-badge.status-2xx {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  border: 1px solid #c8e6c9;
+  background: rgba(0, 200, 83, 0.1);
+  color: var(--success-green);
 }
 
 .code-badge.status-3xx {
-  background-color: #fff3e0;
-  color: #e65100;
-  border: 1px solid #ffe0b2;
+  background: rgba(255, 145, 0, 0.1);
+  color: var(--warning-orange);
 }
 
 .code-badge.status-4xx {
-  background-color: #ffebee;
-  color: #c62828;
-  border: 1px solid #ef9a9a;
+  background: rgba(255, 23, 68, 0.1);
+  color: var(--error-red);
 }
 
 .code-badge.status-5xx {
-  background-color: #fce4ec;
-  color: #880e4f;
-  border: 1px solid #f8bbd0;
+  background: rgba(156, 39, 176, 0.1);
+  color: #7b1fa2;
 }
 
 .code-badge.error {
-  background-color: #f3e5f5;
-  color: #6a1b9a;
-  border: 1px solid #e1bee7;
+  background: rgba(255, 145, 0, 0.1);
+  color: var(--warning-orange);
 }
 
 .code-badge.checking {
-  background-color: #e3f2fd;
-  color: #1565c0;
-  border: 1px solid #bbdefb;
+  background: rgba(0, 41, 255, 0.08);
+  color: var(--primary-blue);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
