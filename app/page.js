@@ -447,14 +447,31 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                         </button>
                         <div className="status-cell-content">
                           {result.redirectInfo && result.redirectInfo.statusCodes && result.redirectInfo.statusCodes.length > 0 ? (
-                            <div className="status-codes-display" title={`Status codes: ${result.redirectInfo.statusCodes.join(' → ')}`}>
-                              {result.redirectInfo.statusCodes.map((code, idx) => (
-                                <span key={idx} className={`code-badge ${getStatusCodeClass(String(code))}`}>
-                                  {code}
-                                  {idx < result.redirectInfo.statusCodes.length - 1 && <span className="arrow"> → </span>}
-                                </span>
-                              ))}
-                            </div>
+                            (() => {
+                              // Filter to show only redirect codes (301, 302, 303, 307, 308)
+                              const redirectCodes = result.redirectInfo.statusCodes.filter(code => [301, 302, 303, 307, 308].includes(code));
+
+                              if (redirectCodes.length > 0) {
+                                return (
+                                  <div className="status-codes-display" title={`Redirect codes: ${redirectCodes.join(' → ')}`}>
+                                    {redirectCodes.map((code, idx) => (
+                                      <span key={idx} className={`code-badge ${getStatusCodeClass(String(code))}`}>
+                                        {code}
+                                        {idx < redirectCodes.length - 1 && <span className="arrow"> → </span>}
+                                      </span>
+                                    ))}
+                                  </div>
+                                );
+                              } else {
+                                // If no redirect codes, show final status
+                                return (
+                                  <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
+                                    <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
+                                    {result.statusCode || 'Checking...'}
+                                  </span>
+                                );
+                              }
+                            })()
                           ) : (
                             <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
                               <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
