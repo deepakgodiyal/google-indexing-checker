@@ -80,7 +80,7 @@ async function checkStatusCode(url) {
             'Upgrade-Insecure-Requests': '1',
             'Connection': 'keep-alive',
           },
-          signal: AbortSignal.timeout(20000),
+          signal: AbortSignal.timeout(8000),
           redirect: 'follow',
         });
       } catch (fetchError) {
@@ -92,7 +92,7 @@ async function checkStatusCode(url) {
               'User-Agent': getRandomUserAgent(),
               'Accept': '*/*',
             },
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(8000),
             redirect: 'follow',
           });
         } catch {
