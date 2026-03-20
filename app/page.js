@@ -412,13 +412,14 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
               <th style={{whiteSpace:'nowrap'}}>Index on Google</th>
               <th style={{whiteSpace:'nowrap'}}>Status Code</th>
               <th style={{whiteSpace:'nowrap'}}>Follow Status</th>
+              <th style={{whiteSpace:'nowrap'}}>Index/Noindex</th>
               <th style={{whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
           </thead>
           <tbody>
             {filteredResults.length === 0 ? (
               <tr>
-                <td colSpan="6">
+                <td colSpan="7">
                   <div className="empty-state"><p>No results to display for this filter.</p></div>
                 </td>
               </tr>
@@ -489,6 +490,14 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                         <span className={`status-badge ${getFollowClass(result.followStatus || 'Checking...')}`}>
                           <span className={`status-dot ${getFollowClass(result.followStatus || 'Checking...')}`}></span>
                           {result.followStatus || 'Checking...'}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="status-cell">
+                        <span className={`status-badge ${result.indexStatus === 'Noindexed' ? 'noindex' : 'indexed'}`}>
+                          <span className={`status-dot ${result.indexStatus === 'Noindexed' ? 'noindex' : 'indexed'}`}></span>
+                          {result.indexStatus || 'Checking...'}
                         </span>
                       </div>
                     </td>

@@ -681,6 +681,16 @@ body {
   color: #9c27b0;
 }
 
+.status-badge.indexed {
+  background: rgba(0, 200, 83, 0.1);
+  color: var(--success-green);
+}
+
+.status-badge.noindex {
+  background: rgba(255, 145, 0, 0.1);
+  color: var(--warning-orange);
+}
+
 .status-dot {
   width: 7px;
   height: 7px;
@@ -694,6 +704,10 @@ body {
 
 .status-dot.not-indexed {
   background: var(--error-red);
+}
+
+.status-dot.noindex {
+  background: var(--warning-orange);
 }
 
 .status-dot.error {

@@ -263,18 +263,39 @@ async function checkFollowStatus(url, targetDomain) {
       const urlDomain = getDomain(url).toLowerCase();
       const normalizedTarget = cleanDomain(targetDomain);
       if (urlDomain === normalizedTarget || urlDomain.endsWith('.' + normalizedTarget) || normalizedTarget.endsWith('.' + urlDomain)) {
-        return { url, followStatus: 'Same Domain', source: 'URL belongs to your own target domain - only check external/third-party URLs' };
+        return { url, followStatus: 'Same Domain', indexStatus: 'N/A', source: 'URL belongs to your own target domain - only check external/third-party URLs' };
       }
     }
 
     const response = await fetchWithRetry(url);
 
     if (!response.ok) {
-      return { url, followStatus: 'Error', detail: `HTTP ${response.status}` };
+      return { url, followStatus: 'Error', indexStatus: 'N/A', detail: `HTTP ${response.status}` };
     }
 
     const html = await response.text();
     const $ = cheerio.load(html);
+
+    // ===== CHECK NOINDEX META TAG =====
+    // Check for noindex directive in meta tags and headers
+    let indexStatus = 'Indexed'; // Default
+    const xRobotsTagHeader = response.headers.get('x-robots-tag') || '';
+
+    if (xRobotsTagHeader.toLowerCase().includes('noindex')) {
+      indexStatus = 'Noindexed';
+    }
+
+    // Check meta robots tag
+    $('meta[name="robots"], meta[name="ROBOTS"]').each((_, el) => {
+      const content = ($(el).attr('content') || '').toLowerCase();
+      if (content.includes('noindex')) indexStatus = 'Noindexed';
+    });
+
+    // Check googlebot meta tag
+    $('meta[name="googlebot"], meta[name="Googlebot"]').each((_, el) => {
+      const content = ($(el).attr('content') || '').toLowerCase();
+      if (content.includes('noindex')) indexStatus = 'Noindexed';
+    });
 
     // ===== TARGET DOMAIN MODE =====
     // If targetDomain is set, FIRST check if links to target exist
@@ -285,14 +306,14 @@ async function checkFollowStatus(url, targetDomain) {
       // If NO links to target domain found, return "No Link Found" immediately
       // regardless of page-level nofollow settings
       if (targeted.targetLinksFound === 0) {
-        return { url, followStatus: 'No Link Found', source: `No links to ${targetDomain} found on this page` };
+        return { url, followStatus: 'No Link Found', indexStatus, source: `No links to ${targetDomain} found on this page` };
       }
 
       // Links to target domain exist - now check page-level nofollow
       // Page-level nofollow means ALL links on the page are nofollow
       const xRobotsTag = response.headers.get('x-robots-tag') || '';
       if (xRobotsTag.toLowerCase().includes('nofollow')) {
-        return { url, followStatus: 'Nofollow', source: 'X-Robots-Tag header (page-level nofollow)' };
+        return { url, followStatus: 'Nofollow', indexStatus, source: 'X-Robots-Tag header (page-level nofollow)' };
       }
 
       let pageNofollow = false;
@@ -306,7 +327,7 @@ async function checkFollowStatus(url, targetDomain) {
       });
 
       if (pageNofollow) {
-        return { url, followStatus: 'Nofollow', source: 'Page-level meta nofollow (all links on page are nofollow)' };
+        return { url, followStatus: 'Nofollow', indexStatus, source: 'Page-level meta nofollow (all links on page are nofollow)' };
       }
 
       // Check individual link rel attributes
@@ -316,21 +337,23 @@ async function checkFollowStatus(url, targetDomain) {
         return {
           url,
           followStatus: 'Dofollow',
+          indexStatus,
           source: `${targeted.targetDofollowCount}/${targeted.targetLinksFound} links to ${targetDomain} are dofollow`,
         };
       }
       return {
         url,
         followStatus: 'Nofollow',
+        indexStatus,
         source: `All ${targeted.targetNofollowCount} links to ${targetDomain} have rel=nofollow`,
       };
     }
 
     // ===== NO TARGET DOMAIN MODE =====
     // Check page-level nofollow first
-    const xRobotsTag = response.headers.get('x-robots-tag') || '';
-    if (xRobotsTag.toLowerCase().includes('nofollow')) {
-      return { url, followStatus: 'Nofollow', source: 'X-Robots-Tag header' };
+    // (xRobotsTag already checked above for indexStatus)
+    if (xRobotsTagHeader.toLowerCase().includes('nofollow')) {
+      return { url, followStatus: 'Nofollow', indexStatus, source: 'X-Robots-Tag header' };
     }
 
     let isNofollow = false;
@@ -345,7 +368,7 @@ async function checkFollowStatus(url, targetDomain) {
     });
 
     if (isNofollow) {
-      return { url, followStatus: 'Nofollow', source };
+      return { url, followStatus: 'Nofollow', indexStatus, source };
     }
 
     $('meta[name="googlebot"], meta[name="Googlebot"]').each((_, el) => {
@@ -357,7 +380,7 @@ async function checkFollowStatus(url, targetDomain) {
     });
 
     if (isNofollow) {
-      return { url, followStatus: 'Nofollow', source };
+      return { url, followStatus: 'Nofollow', indexStatus, source };
     }
 
     // ===== OLD BEHAVIOR (no target domain) =====
@@ -420,12 +443,12 @@ async function checkFollowStatus(url, targetDomain) {
       };
     }
 
-    return { url, followStatus: 'Dofollow', source: 'No outbound links found (default dofollow)' };
+    return { url, followStatus: 'Dofollow', indexStatus, source: 'No outbound links found (default dofollow)' };
   } catch (error) {
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-      return { url, followStatus: 'Error', detail: 'Site not accessible from server' };
+      return { url, followStatus: 'Error', indexStatus: 'N/A', detail: 'Site not accessible from server' };
     }
-    return { url, followStatus: 'Error', detail: error.message || 'Unknown error' };
+    return { url, followStatus: 'Error', indexStatus: 'N/A', detail: error.message || 'Unknown error' };
   }
 }
 
