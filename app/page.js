@@ -342,39 +342,6 @@ function StatsCards({ results }) {
 }
 
 // ==========================================
-// REDIRECT INFO COMPONENT
-// ==========================================
-function RedirectInfo({ redirectInfo }) {
-  if (!redirectInfo || !redirectInfo.isRedirected) {
-    return <span className="redirect-badge no-redirect">No Redirect</span>;
-  }
-
-  const redirectChain = redirectInfo.redirectChain || [];
-  const finalUrl = redirectInfo.finalUrl;
-
-  return (
-    <div className="redirect-info-wrapper">
-      <span className="redirect-badge redirected">Redirected ({redirectInfo.redirectCount})</span>
-      <div className="redirect-details">
-        <div className="redirect-chain">
-          {redirectChain.map((item, idx) => (
-            <div key={idx} className="redirect-item">
-              <span className="redirect-url">{item.url}</span>
-              <span className="redirect-code">{item.statusCode}</span>
-            </div>
-          ))}
-        </div>
-        {finalUrl && (
-          <div className="final-url">
-            <strong>Final URL:</strong> {finalUrl}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ==========================================
 // RESULTS TABLE
 // ==========================================
 function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckStatus, onRecheckFollow, isChecking }) {
@@ -441,10 +408,9 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
           <thead>
             <tr>
               <th style={{width:'30px'}}>#</th>
-              <th style={{width:'25%'}}>URL</th>
+              <th style={{width:'28%'}}>URL</th>
               <th style={{whiteSpace:'nowrap'}}>Index Status</th>
               <th style={{whiteSpace:'nowrap'}}>Status Code</th>
-              <th style={{whiteSpace:'nowrap'}}>Redirect Status</th>
               <th style={{whiteSpace:'nowrap'}}>Follow Status</th>
               <th style={{whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
@@ -452,7 +418,7 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
           <tbody>
             {filteredResults.length === 0 ? (
               <tr>
-                <td colSpan="7">
+                <td colSpan="6">
                   <div className="empty-state"><p>No results to display for this filter.</p></div>
                 </td>
               </tr>
@@ -479,14 +445,24 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                         <button className={`recheck-btn ${isChecking || result.statusCode === 'Checking...' || result.statusCode === '-' ? 'recheck-hidden' : ''}`} onClick={() => onRecheckStatus(originalIndex)} title="Recheck Status Code" disabled={isChecking || result.statusCode === 'Checking...'}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                         </button>
-                        <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
-                          <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
-                          {result.statusCode || 'Checking...'}
-                        </span>
+                        <div className="status-cell-content">
+                          {result.redirectInfo && result.redirectInfo.isRedirected ? (
+                            <div className="redirect-chain-display" title={`Redirect chain: ${result.redirectInfo.redirectChain?.map(r => `${r.url} (${r.statusCode})`).join(' → ')}`}>
+                              {result.redirectInfo.redirectChain?.map((hop, idx) => (
+                                <span key={idx} className={`code-badge ${getStatusCodeClass(String(hop.statusCode))}`}>
+                                  {hop.statusCode}
+                                  {idx < result.redirectInfo.redirectChain.length - 1 && <span className="arrow"> → </span>}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className={`status-badge ${getStatusCodeClass(result.statusCode || 'Checking...')}`}>
+                              <span className={`status-dot ${getStatusCodeClass(result.statusCode || 'Checking...')}`}></span>
+                              {result.statusCode || 'Checking...'}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </td>
-                    <td>
-                      <RedirectInfo redirectInfo={result.redirectInfo} />
                     </td>
                     <td>
                       <div className="status-cell">
