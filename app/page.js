@@ -319,7 +319,7 @@ function StatsCards({ results }) {
     <div className="stats-grid-5">
       <div className="stat-card indexed">
         <div className="stat-number">{indexed}</div>
-        <div className="stat-label">Indexed</div>
+        <div className="stat-label">Index on Google</div>
       </div>
       <div className="stat-card not-indexed">
         <div className="stat-number">{notIndexed}</div>
