@@ -666,6 +666,77 @@ git push
 
 ---
 
+## 🔄 Redirect Detection Guide
+
+### What is a Redirect?
+A redirect happens when a URL sends visitors to a different URL. HTTP status codes identify the type of redirect:
+
+| Code | Meaning | Use Case |
+|------|---------|----------|
+| **301** | Permanent Redirect | Moved permanently, pass SEO value |
+| **302** | Temporary Redirect | Temporary move, don't pass SEO value |
+| **303** | See Other | POST request redirect |
+| **307** | Temp Redirect (HTTP) | Like 302 but preserves method |
+| **308** | Permanent Redirect (HTTP) | Like 301 but preserves method |
+
+### How the Tool Works
+1. **Detects Redirect Chains:** Follows up to 10 redirects maximum
+2. **Captures Status Codes:** Records each redirect code encountered
+3. **Finds Final URL:** Shows where the redirect chain ends
+4. **Identifies Issues:**
+   - Too many redirects (chain too long)
+   - Broken redirect destinations (404, 500)
+   - Mixed redirect types (bad for SEO)
+
+### STATUS CODE Display Format
+
+**Example 1: URL with Redirect**
+```
+Original URL → (302 Redirect) → Final URL
+STATUS CODE shows: 302
+```
+
+**Example 2: URL without Redirect**
+```
+Direct URL → 200 OK
+STATUS CODE shows: 200 OK
+```
+
+**Example 3: Error on Final Destination**
+```
+Original URL → (301 Redirect) → Error Page (404)
+STATUS CODE shows: 404 Not Found
+```
+
+### Why Only Redirect Codes?
+The tool displays **only redirect codes** (301, 302, 303, 307, 308) to keep the focus on redirect behavior:
+- **Redirect codes:** 301, 302, 303, 307, 308 ✅ (Always shown)
+- **Final status:** 200, 404, 500, etc. ✅ (Shown only if no redirects)
+
+This makes it clear which URLs have redirect chains and which don't.
+
+### Common Redirect Scenarios
+
+**Best Practice:**
+```
+https://example.com/old-page → (301) → https://example.com/new-page (200 OK)
+```
+Shows: `301` ✅
+
+**Not SEO-Friendly:**
+```
+https://example.com/old-page → (302) → https://example.com/new-page (200 OK)
+```
+Shows: `302` ⚠️ (Should be 301)
+
+**Problematic:**
+```
+https://example.com/old-page → (301) → https://example.com/temp → (301) → https://example.com/final (200 OK)
+```
+Shows: `301` (3+ redirect chain - should be simplified)
+
+---
+
 ## 🐛 Troubleshooting
 
 ### Problem: "Invalid API key"
