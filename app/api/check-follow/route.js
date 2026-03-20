@@ -410,6 +410,7 @@ async function checkFollowStatus(url, targetDomain) {
           return {
             url,
             followStatus: 'Nofollow',
+            indexStatus,
             source: `${contentLinks.nofollowCount}/${contentLinks.totalOutbound} content links have rel=nofollow`,
           };
         }
@@ -417,6 +418,7 @@ async function checkFollowStatus(url, targetDomain) {
         return {
           url,
           followStatus: 'Dofollow',
+          indexStatus,
           source: `${contentLinks.totalOutbound - contentLinks.nofollowCount}/${contentLinks.totalOutbound} content links are dofollow`,
         };
       }
@@ -432,6 +434,7 @@ async function checkFollowStatus(url, targetDomain) {
         return {
           url,
           followStatus: 'Nofollow',
+          indexStatus,
           source: `${allLinks.nofollowCount}/${allLinks.totalOutbound} outbound links have rel=nofollow`,
         };
       }
@@ -439,6 +442,7 @@ async function checkFollowStatus(url, targetDomain) {
       return {
         url,
         followStatus: 'Dofollow',
+        indexStatus,
         source: `${allLinks.totalOutbound - allLinks.nofollowCount}/${allLinks.totalOutbound} outbound links are dofollow`,
       };
     }

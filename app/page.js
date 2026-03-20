@@ -1146,7 +1146,7 @@ export default function Home() {
                 updatedResults[i + originalIdx] = {
                   ...updatedResults[i + originalIdx],
                   followStatus: result.followStatus,
-                  indexStatus: result.indexStatus || 'Indexed',
+                  indexStatus: result.indexStatus || 'N/A',
                 };
               }
             });
