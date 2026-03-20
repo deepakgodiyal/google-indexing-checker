@@ -827,6 +827,7 @@ export default function Home() {
   const [checkIndex, setCheckIndex] = useState(true);
   const [checkFollow, setCheckFollow] = useState(true);
   const [checkStatus, setCheckStatus] = useState(true);
+  const [checkIndexMeta, setCheckIndexMeta] = useState(true);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [showOnlinePanel, setShowOnlinePanel] = useState(false);
 
@@ -1232,6 +1233,10 @@ export default function Home() {
             <label className="check-option">
               <input type="checkbox" checked={checkStatus} onChange={(e) => setCheckStatus(e.target.checked)} disabled={isChecking} />
               <span className="check-option-text">Status Code</span>
+            </label>
+            <label className="check-option">
+              <input type="checkbox" checked={checkIndexMeta} onChange={(e) => setCheckIndexMeta(e.target.checked)} disabled={isChecking} />
+              <span className="check-option-text">Index/Noindex</span>
             </label>
           </div>
 
