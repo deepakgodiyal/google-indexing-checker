@@ -80,7 +80,7 @@ function cleanDomain(input) {
   return cleaned;
 }
 
-// Fetch with retry - 2 attempts, 15s timeout each
+// Fetch with retry - 2 attempts, 8s timeout each (fast fail for slow URLs)
 async function fetchWithRetry(url) {
   const maxAttempts = 2;
   let lastError = null;
@@ -102,7 +102,7 @@ async function fetchWithRetry(url) {
           'Upgrade-Insecure-Requests': '1',
           'Connection': 'keep-alive',
         },
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(8000),
         redirect: 'follow',
       });
       return response;
