@@ -354,7 +354,7 @@ function StatsCards({ results }) {
 // ==========================================
 // RESULTS TABLE
 // ==========================================
-function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckStatus, onRecheckFollow, isChecking }) {
+function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckStatus, onRecheckFollow, onRecheckIndexMeta, isChecking }) {
   const filteredResults =
     filter === 'all'
       ? results
@@ -505,6 +505,9 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                     </td>
                     <td>
                       <div className="status-cell">
+                        <button className={`recheck-btn ${isChecking || result.indexStatus === 'Checking...' || result.indexStatus === '-' ? 'recheck-hidden' : ''}`} onClick={() => onRecheckIndexMeta(originalIndex)} title="Recheck INDEX/NOINDEX Status" disabled={isChecking || result.indexStatus === 'Checking...'}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                        </button>
                         <span className={`status-badge ${
                           result.indexStatus === 'Index Tag' ? 'indexed' :
                           result.indexStatus === 'Noindex Tag' ? 'noindex' :
@@ -961,6 +964,38 @@ export default function Home() {
     setResults([...updated]);
   }, [results, targetDomain]);
 
+  // Recheck single URL - Index Meta Tag (INDEX/NOINDEX)
+  const recheckIndexMeta = useCallback(async (urlIndex) => {
+    const url = results[urlIndex]?.url;
+    if (!url) return;
+
+    // Only recheck if status code is 200 OK
+    const sc = results[urlIndex]?.statusCode || '';
+    if (!sc.startsWith('200')) {
+      const updated2 = [...results];
+      updated2[urlIndex] = { ...updated2[urlIndex], indexStatus: 'N/A' };
+      setResults([...updated2]);
+      return;
+    }
+
+    const updated2 = [...results];
+    updated2[urlIndex] = { ...updated2[urlIndex], indexStatus: 'Checking...' };
+    setResults([...updated2]);
+
+    try {
+      const resp = await fetch('/api/check-follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urls: [url], targetDomain }),
+      });
+      const data = await resp.json();
+      updated2[urlIndex] = { ...updated2[urlIndex], indexStatus: data.results?.[0]?.indexStatus || 'Error' };
+    } catch (err) {
+      updated2[urlIndex] = { ...updated2[urlIndex], indexStatus: 'Error' };
+    }
+    setResults([...updated2]);
+  }, [results, targetDomain]);
+
   // Main check handler
   const handleCheck = useCallback(async () => {
     setError('');
@@ -1287,7 +1322,7 @@ export default function Home() {
         )}
 
         {hasResults && <StatsCards results={results} />}
-        {results.length > 0 && <ResultsTable results={results} filter={filter} setFilter={setFilter} onRecheckIndex={recheckIndex} onRecheckStatus={recheckStatus} onRecheckFollow={recheckFollow} isChecking={isChecking} />}
+        {results.length > 0 && <ResultsTable results={results} filter={filter} setFilter={setFilter} onRecheckIndex={recheckIndex} onRecheckStatus={recheckStatus} onRecheckFollow={recheckFollow} onRecheckIndexMeta={recheckIndexMeta} isChecking={isChecking} />}
       </main>
 
       <Footer />
