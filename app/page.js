@@ -731,6 +731,39 @@ async function clientSideFollowCheck(url, targetDomain) {
 }
 
 // ==========================================
+// Helper Functions for Status Codes
+// ==========================================
+function getStatusLabel(code) {
+  if (code >= 200 && code < 300) return `${code} OK`;
+  if (code === 301) return '301 Redirect';
+  if (code === 302) return '302 Temp Redirect';
+  if (code === 303) return '303 See Other';
+  if (code === 307) return '307 Temp Redirect';
+  if (code === 308) return '308 Permanent Redirect';
+  if (code === 400) return '400 Bad Request';
+  if (code === 401) return '401 Unauthorized';
+  if (code === 403) return '403 Forbidden';
+  if (code === 404) return '404 Not Found';
+  if (code === 410) return '410 Gone';
+  if (code === 429) return '429 Too Many Requests';
+  if (code === 500) return '500 Server Error';
+  if (code === 502) return '502 Bad Gateway';
+  if (code === 503) return '503 Unavailable';
+  if (code >= 300 && code < 400) return `${code} Redirect`;
+  if (code >= 400 && code < 500) return `${code} Client Error`;
+  if (code >= 500) return `${code} Server Error`;
+  return `${code}`;
+}
+
+function getStatusCategory(code) {
+  if (code >= 200 && code < 300) return 'success';
+  if (code >= 300 && code < 400) return 'redirect';
+  if (code >= 400 && code < 500) return 'client-error';
+  if (code >= 500) return 'server-error';
+  return 'unknown';
+}
+
+// ==========================================
 // MAIN PAGE COMPONENT
 // ==========================================
 export default function Home() {
@@ -938,7 +971,17 @@ export default function Home() {
           }
           const data = await response.json();
           data.results.forEach((result, idx) => {
-            updatedResults[i + idx] = { ...updatedResults[i + idx], status: result.status };
+            const statusCodes = result.redirectInfo?.statusCodes || [];
+            const finalStatusCode = statusCodes.length > 0 ? statusCodes[statusCodes.length - 1] : 200;
+            const statusLabel = getStatusLabel(finalStatusCode);
+
+            updatedResults[i + idx] = {
+              ...updatedResults[i + idx],
+              status: result.status,
+              redirectInfo: result.redirectInfo || { statusCodes: [], finalUrl: null, redirectCount: 0, isRedirected: false },
+              statusCode: statusLabel,
+              statusCategory: getStatusCategory(finalStatusCode),
+            };
           });
         } catch (err) {
           batch.forEach((url, idx) => {
@@ -951,8 +994,8 @@ export default function Home() {
       }
     }
 
-    // PHASE 2: HTTP Status Code (only if selected)
-    if (checkStatus) {
+    // PHASE 2: HTTP Status Code (only if selected and not already from check-index)
+    if (checkStatus && !checkIndex) {
       setProgress({ current: 0, total: urlList.length, phase: 'Checking HTTP status codes...' });
       for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
         const batch = urlList.slice(i, i + BATCH_SIZE);
