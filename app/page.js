@@ -314,9 +314,11 @@ function StatsCards({ results }) {
   const notIndexed = results.filter((r) => r.status === 'Not Indexed').length;
   const dofollow = results.filter((r) => r.followStatus === 'Dofollow').length;
   const nofollow = results.filter((r) => r.followStatus === 'Nofollow').length;
+  const indexTag = results.filter((r) => r.indexStatus === 'Index Tag').length;
+  const noinindexTag = results.filter((r) => r.indexStatus === 'Noindex Tag').length;
 
   return (
-    <div className="stats-grid-5">
+    <div className="stats-grid-7">
       <div className="stat-card indexed">
         <div className="stat-number">{indexed}</div>
         <div className="stat-label">Indexed on Google</div>
@@ -332,6 +334,14 @@ function StatsCards({ results }) {
       <div className="stat-card nofollow">
         <div className="stat-number">{nofollow}</div>
         <div className="stat-label">Nofollow</div>
+      </div>
+      <div className="stat-card indexed">
+        <div className="stat-number">{indexTag}</div>
+        <div className="stat-label">Index Tag</div>
+      </div>
+      <div className="stat-card noindex">
+        <div className="stat-number">{noinindexTag}</div>
+        <div className="stat-label">Noindex Tag</div>
       </div>
       <div className="stat-card total">
         <div className="stat-number">{results.length}</div>
