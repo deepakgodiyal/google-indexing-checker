@@ -1051,12 +1051,17 @@ export default function Home() {
       }
     }
 
-    // PHASE 3: Before Follow check - set N/A for non-200 URLs
+    // PHASE 3: Before Follow check - set N/A for non-200 URLs and initialize indexStatus
     if (checkFollow) {
       updatedResults.forEach((r, idx) => {
         const sc = r.statusCode || '';
         if (!sc.startsWith('200') && sc !== '-' && sc !== 'Checking...') {
-          updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A' };
+          updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A', indexStatus: 'N/A' };
+        } else {
+          // Initialize indexStatus to Checking for URLs that will be checked
+          if (!updatedResults[idx].indexStatus) {
+            updatedResults[idx] = { ...updatedResults[idx], indexStatus: 'Checking...' };
+          }
         }
       });
       setResults([...updatedResults]);
@@ -1082,13 +1087,17 @@ export default function Home() {
             data.results.forEach((result, resultIdx) => {
               const originalIdx = batch.indexOf(urlsToCheck[resultIdx]);
               if (originalIdx !== -1) {
-                updatedResults[i + originalIdx] = { ...updatedResults[i + originalIdx], followStatus: result.followStatus };
+                updatedResults[i + originalIdx] = {
+                  ...updatedResults[i + originalIdx],
+                  followStatus: result.followStatus,
+                  indexStatus: result.indexStatus || 'Indexed',
+                };
               }
             });
           } catch (err) {
             batch.forEach((url, idx) => {
               if (updatedResults[i + idx]?.followStatus === 'Checking...') {
-                updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: 'Error' };
+                updatedResults[i + idx] = { ...updatedResults[i + idx], followStatus: 'Error', indexStatus: 'N/A' };
               }
             });
           }
