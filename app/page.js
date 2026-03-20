@@ -409,7 +409,7 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
             <tr>
               <th style={{width:'30px'}}>#</th>
               <th style={{width:'28%'}}>URL</th>
-              <th style={{whiteSpace:'nowrap'}}>Index Status</th>
+              <th style={{whiteSpace:'nowrap'}}>Index on Google</th>
               <th style={{whiteSpace:'nowrap'}}>Status Code</th>
               <th style={{whiteSpace:'nowrap'}}>Follow Status</th>
               <th style={{whiteSpace:'nowrap'}}>Google Search</th>
