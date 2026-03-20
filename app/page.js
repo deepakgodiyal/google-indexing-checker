@@ -496,14 +496,14 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                     <td>
                       <div className="status-cell">
                         <span className={`status-badge ${
-                          result.indexStatus === 'Indexed' ? 'indexed' :
-                          result.indexStatus === 'Noindexed' ? 'noindex' :
+                          result.indexStatus === 'Index Tag' ? 'indexed' :
+                          result.indexStatus === 'Noindex Tag' ? 'noindex' :
                           result.indexStatus === 'N/A' ? 'na-status' :
                           'checking'
                         }`}>
                           <span className={`status-dot ${
-                            result.indexStatus === 'Indexed' ? 'indexed' :
-                            result.indexStatus === 'Noindexed' ? 'noindex' :
+                            result.indexStatus === 'Index Tag' ? 'indexed' :
+                            result.indexStatus === 'Noindex Tag' ? 'noindex' :
                             result.indexStatus === 'N/A' ? 'na-status' :
                             'checking'
                           }`}></span>

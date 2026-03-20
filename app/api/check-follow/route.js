@@ -278,23 +278,23 @@ async function checkFollowStatus(url, targetDomain) {
 
     // ===== CHECK NOINDEX META TAG =====
     // Check for noindex directive in meta tags and headers
-    let indexStatus = 'Indexed'; // Default
+    let indexStatus = 'Index Tag'; // Default - no noindex tag found
     const xRobotsTagHeader = response.headers.get('x-robots-tag') || '';
 
     if (xRobotsTagHeader.toLowerCase().includes('noindex')) {
-      indexStatus = 'Noindexed';
+      indexStatus = 'Noindex Tag';
     }
 
     // Check meta robots tag
     $('meta[name="robots"], meta[name="ROBOTS"]').each((_, el) => {
       const content = ($(el).attr('content') || '').toLowerCase();
-      if (content.includes('noindex')) indexStatus = 'Noindexed';
+      if (content.includes('noindex')) indexStatus = 'Noindex Tag';
     });
 
     // Check googlebot meta tag
     $('meta[name="googlebot"], meta[name="Googlebot"]').each((_, el) => {
       const content = ($(el).attr('content') || '').toLowerCase();
-      if (content.includes('noindex')) indexStatus = 'Noindexed';
+      if (content.includes('noindex')) indexStatus = 'Noindex Tag';
     });
 
     // ===== TARGET DOMAIN MODE =====
