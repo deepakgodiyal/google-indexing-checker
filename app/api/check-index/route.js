@@ -39,7 +39,7 @@ function isRateLimited(ip) {
 // Detect HTTP Redirects
 // ============================================
 async function detectRedirects(url) {
-  const redirectChain = [];
+  const statusCodes = [];
   let currentUrl = url;
   let followRedirects = true;
   const maxRedirects = 10;
@@ -47,48 +47,79 @@ async function detectRedirects(url) {
 
   try {
     while (followRedirects && redirectCount < maxRedirects) {
-      const response = await fetch(currentUrl, {
-        method: 'HEAD',
-        redirect: 'manual', // Don't follow redirects automatically
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        },
-        signal: AbortSignal.timeout(8000),
-      });
+      try {
+        const response = await fetch(currentUrl, {
+          method: 'GET',
+          redirect: 'manual', // Don't follow redirects automatically
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          },
+          signal: AbortSignal.timeout(8000),
+        });
 
-      const statusCode = response.status;
-      redirectChain.push({
-        url: currentUrl,
-        statusCode: statusCode,
-      });
+        const statusCode = response.status;
+        statusCodes.push(statusCode);
 
-      // Check if it's a redirect status code
-      if ([301, 302, 303, 307, 308].includes(statusCode)) {
-        const location = response.headers.get('location');
-        if (location) {
-          // Handle relative redirects
-          const redirectUrl = location.startsWith('http')
-            ? location
-            : new URL(location, currentUrl).toString();
-          currentUrl = redirectUrl;
-          redirectCount++;
+        // Check if it's a redirect status code
+        if ([301, 302, 303, 307, 308].includes(statusCode)) {
+          const location = response.headers.get('location');
+          if (location) {
+            // Handle relative redirects
+            const redirectUrl = location.startsWith('http')
+              ? location
+              : new URL(location, currentUrl).toString();
+            currentUrl = redirectUrl;
+            redirectCount++;
+          } else {
+            followRedirects = false;
+          }
         } else {
           followRedirects = false;
         }
-      } else {
-        followRedirects = false;
+      } catch (fetchError) {
+        // If fetch fails, try HEAD as fallback
+        try {
+          const headResponse = await fetch(currentUrl, {
+            method: 'HEAD',
+            redirect: 'manual',
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            },
+            signal: AbortSignal.timeout(8000),
+          });
+
+          const statusCode = headResponse.status;
+          statusCodes.push(statusCode);
+
+          if ([301, 302, 303, 307, 308].includes(statusCode)) {
+            const location = headResponse.headers.get('location');
+            if (location) {
+              const redirectUrl = location.startsWith('http')
+                ? location
+                : new URL(location, currentUrl).toString();
+              currentUrl = redirectUrl;
+              redirectCount++;
+            } else {
+              followRedirects = false;
+            }
+          } else {
+            followRedirects = false;
+          }
+        } catch {
+          followRedirects = false;
+        }
       }
     }
 
     return {
-      redirectChain,
+      statusCodes: statusCodes,
       finalUrl: currentUrl,
       redirectCount: redirectCount,
       isRedirected: redirectCount > 0,
     };
   } catch (error) {
     return {
-      redirectChain: [{ url, statusCode: 'Error', error: error.message }],
+      statusCodes: [],
       finalUrl: url,
       redirectCount: 0,
       isRedirected: false,

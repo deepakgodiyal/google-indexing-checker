@@ -446,12 +446,12 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
                         </button>
                         <div className="status-cell-content">
-                          {result.redirectInfo && result.redirectInfo.isRedirected ? (
-                            <div className="redirect-chain-display" title={`Redirect chain: ${result.redirectInfo.redirectChain?.map(r => `${r.url} (${r.statusCode})`).join(' → ')}`}>
-                              {result.redirectInfo.redirectChain?.map((hop, idx) => (
-                                <span key={idx} className={`code-badge ${getStatusCodeClass(String(hop.statusCode))}`}>
-                                  {hop.statusCode}
-                                  {idx < result.redirectInfo.redirectChain.length - 1 && <span className="arrow"> → </span>}
+                          {result.redirectInfo && result.redirectInfo.statusCodes && result.redirectInfo.statusCodes.length > 0 ? (
+                            <div className="status-codes-display" title={`Status codes: ${result.redirectInfo.statusCodes.join(' → ')}`}>
+                              {result.redirectInfo.statusCodes.map((code, idx) => (
+                                <span key={idx} className={`code-badge ${getStatusCodeClass(String(code))}`}>
+                                  {code}
+                                  {idx < result.redirectInfo.statusCodes.length - 1 && <span className="arrow"> → </span>}
                                 </span>
                               ))}
                             </div>
@@ -506,13 +506,13 @@ function Footer() {
 // CSV EXPORT
 // ==========================================
 function exportCSV(results) {
-  const header = 'URL,Status Code,Index Status,Follow Status,Redirected,Final URL,Redirect Chain,Google Search Link\n';
+  const header = 'URL,Status Code,Index Status,Follow Status,Redirected,Final URL,Status Codes,Google Search Link\n';
   const rows = results.map((r) => {
     const redirectInfo = r.redirectInfo || {};
-    const redirectChain = redirectInfo.redirectChain || [];
-    const redirectChainStr = redirectChain.map(rh => `${rh.url} (${rh.statusCode})`).join(' -> ');
+    const statusCodes = redirectInfo.statusCodes || [];
+    const statusCodesStr = statusCodes.join(' → ');
 
-    return `"${r.url}","${r.statusCode || 'N/A'}","${r.status}","${r.followStatus || 'N/A'}","${redirectInfo.isRedirected ? 'Yes' : 'No'}","${redirectInfo.finalUrl || 'N/A'}","${redirectChainStr}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`;
+    return `"${r.url}","${r.statusCode || 'N/A'}","${r.status}","${r.followStatus || 'N/A'}","${redirectInfo.isRedirected ? 'Yes' : 'No'}","${redirectInfo.finalUrl || 'N/A'}","${statusCodesStr}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`;
   }).join('\n');
   const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
@@ -531,8 +531,8 @@ async function exportExcel(results) {
     const XLSX = xlsxModule.default || xlsxModule;
     const data = results.map((r, i) => {
       const redirectInfo = r.redirectInfo || {};
-      const redirectChain = redirectInfo.redirectChain || [];
-      const redirectChainStr = redirectChain.map(rh => `${rh.url} (${rh.statusCode})`).join(' -> ');
+      const statusCodes = redirectInfo.statusCodes || [];
+      const statusCodesStr = statusCodes.join(' → ');
 
       return {
         '#': i + 1,
@@ -542,7 +542,7 @@ async function exportExcel(results) {
         'Follow Status': r.followStatus || 'N/A',
         'Redirected': redirectInfo.isRedirected ? 'Yes' : 'No',
         'Final URL': redirectInfo.finalUrl || 'N/A',
-        'Redirect Chain': redirectChainStr,
+        'Status Codes': statusCodesStr,
         'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
       };
     });
