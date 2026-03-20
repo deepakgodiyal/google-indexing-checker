@@ -342,6 +342,39 @@ function StatsCards({ results }) {
 }
 
 // ==========================================
+// REDIRECT INFO COMPONENT
+// ==========================================
+function RedirectInfo({ redirectInfo }) {
+  if (!redirectInfo || !redirectInfo.isRedirected) {
+    return <span className="redirect-badge no-redirect">No Redirect</span>;
+  }
+
+  const redirectChain = redirectInfo.redirectChain || [];
+  const finalUrl = redirectInfo.finalUrl;
+
+  return (
+    <div className="redirect-info-wrapper">
+      <span className="redirect-badge redirected">Redirected ({redirectInfo.redirectCount})</span>
+      <div className="redirect-details">
+        <div className="redirect-chain">
+          {redirectChain.map((item, idx) => (
+            <div key={idx} className="redirect-item">
+              <span className="redirect-url">{item.url}</span>
+              <span className="redirect-code">{item.statusCode}</span>
+            </div>
+          ))}
+        </div>
+        {finalUrl && (
+          <div className="final-url">
+            <strong>Final URL:</strong> {finalUrl}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // RESULTS TABLE
 // ==========================================
 function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckStatus, onRecheckFollow, isChecking }) {
@@ -408,9 +441,10 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
           <thead>
             <tr>
               <th style={{width:'30px'}}>#</th>
-              <th style={{width:'28%'}}>URL</th>
+              <th style={{width:'25%'}}>URL</th>
               <th style={{whiteSpace:'nowrap'}}>Index Status</th>
               <th style={{whiteSpace:'nowrap'}}>Status Code</th>
+              <th style={{whiteSpace:'nowrap'}}>Redirect Status</th>
               <th style={{whiteSpace:'nowrap'}}>Follow Status</th>
               <th style={{whiteSpace:'nowrap'}}>Google Search</th>
             </tr>
@@ -418,7 +452,7 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
           <tbody>
             {filteredResults.length === 0 ? (
               <tr>
-                <td colSpan="6">
+                <td colSpan="7">
                   <div className="empty-state"><p>No results to display for this filter.</p></div>
                 </td>
               </tr>
@@ -450,6 +484,9 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
                           {result.statusCode || 'Checking...'}
                         </span>
                       </div>
+                    </td>
+                    <td>
+                      <RedirectInfo redirectInfo={result.redirectInfo} />
                     </td>
                     <td>
                       <div className="status-cell">
@@ -493,10 +530,14 @@ function Footer() {
 // CSV EXPORT
 // ==========================================
 function exportCSV(results) {
-  const header = 'URL,Status Code,Index Status,Follow Status,Google Search Link\n';
-  const rows = results.map((r) =>
-    `"${r.url}","${r.statusCode || 'N/A'}","${r.status}","${r.followStatus || 'N/A'}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`
-  ).join('\n');
+  const header = 'URL,Status Code,Index Status,Follow Status,Redirected,Final URL,Redirect Chain,Google Search Link\n';
+  const rows = results.map((r) => {
+    const redirectInfo = r.redirectInfo || {};
+    const redirectChain = redirectInfo.redirectChain || [];
+    const redirectChainStr = redirectChain.map(rh => `${rh.url} (${rh.statusCode})`).join(' -> ');
+
+    return `"${r.url}","${r.statusCode || 'N/A'}","${r.status}","${r.followStatus || 'N/A'}","${redirectInfo.isRedirected ? 'Yes' : 'No'}","${redirectInfo.finalUrl || 'N/A'}","${redirectChainStr}","https://www.google.com/search?q=site:${encodeURIComponent(r.url)}"`;
+  }).join('\n');
   const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -512,16 +553,35 @@ async function exportExcel(results) {
   try {
     const xlsxModule = await import('xlsx');
     const XLSX = xlsxModule.default || xlsxModule;
-    const data = results.map((r, i) => ({
-      '#': i + 1,
-      'URL': r.url,
-      'Status Code': r.statusCode || 'N/A',
-      'Index Status': r.status,
-      'Follow Status': r.followStatus || 'N/A',
-      'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
-    }));
+    const data = results.map((r, i) => {
+      const redirectInfo = r.redirectInfo || {};
+      const redirectChain = redirectInfo.redirectChain || [];
+      const redirectChainStr = redirectChain.map(rh => `${rh.url} (${rh.statusCode})`).join(' -> ');
+
+      return {
+        '#': i + 1,
+        'URL': r.url,
+        'Status Code': r.statusCode || 'N/A',
+        'Index Status': r.status,
+        'Follow Status': r.followStatus || 'N/A',
+        'Redirected': redirectInfo.isRedirected ? 'Yes' : 'No',
+        'Final URL': redirectInfo.finalUrl || 'N/A',
+        'Redirect Chain': redirectChainStr,
+        'Google Search Link': `https://www.google.com/search?q=site:${encodeURIComponent(r.url)}`,
+      };
+    });
     const worksheet = XLSX.utils.json_to_sheet(data);
-    worksheet['!cols'] = [{ wch: 5 }, { wch: 60 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 70 }];
+    worksheet['!cols'] = [
+      { wch: 5 },
+      { wch: 50 },
+      { wch: 12 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 50 },
+      { wch: 80 },
+      { wch: 70 }
+    ];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Index Results');
     XLSX.writeFile(workbook, `index-check-results-${new Date().toISOString().split('T')[0]}.xlsx`);

@@ -1304,6 +1304,106 @@ body {
 }
 
 /* ========================================
+   REDIRECT STYLING
+   ======================================== */
+.redirect-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.redirect-badge.no-redirect {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.redirect-badge.redirected {
+  background-color: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffe0b2;
+}
+
+.redirect-info-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.redirect-details {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
+  min-width: 300px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  display: none;
+  font-size: 12px;
+}
+
+.redirect-info-wrapper:hover .redirect-details {
+  display: block;
+}
+
+.redirect-chain {
+  margin-bottom: 8px;
+}
+
+.redirect-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-family: 'Courier New', monospace;
+}
+
+.redirect-item:last-child {
+  border-bottom: none;
+}
+
+.redirect-url {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #555;
+  margin-right: 8px;
+}
+
+.redirect-code {
+  background-color: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #ff9800;
+  flex-shrink: 0;
+}
+
+.final-url {
+  padding: 8px 0;
+  border-top: 1px solid #f0f0f0;
+  font-size: 11px;
+  color: #666;
+}
+
+.final-url strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+/* ========================================
    RESPONSIVE
    ======================================== */
 @media (max-width: 768px) {
