@@ -1325,12 +1325,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
-  font-family: 'Courier New', monospace;
 }
 
 .code-badge.status-2xx {
@@ -1373,7 +1372,8 @@ body {
 .code-badge .arrow {
   color: #999;
   margin: 0 2px;
-  font-size: 10px;
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .final-url strong {
