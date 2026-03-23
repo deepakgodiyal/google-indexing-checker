@@ -120,6 +120,7 @@ async function fetchWithRetry(url) {
 function analyzeLinks($, container, pageDomain, targetDomain) {
   let totalOutbound = 0;
   let nofollowCount = 0;
+  let noindexCount = 0;
 
   const links = container ? $(container).find('a[href]') : $('a[href]');
   const normalizedTarget = targetDomain ? cleanDomain(targetDomain) : '';
@@ -162,9 +163,12 @@ function analyzeLinks($, container, pageDomain, targetDomain) {
     if (rel.includes('nofollow') || rel.includes('ugc') || rel.includes('sponsored')) {
       nofollowCount++;
     }
+    if (rel.includes('noindex')) {
+      noindexCount++;
+    }
   });
 
-  return { totalOutbound, nofollowCount };
+  return { totalOutbound, nofollowCount, noindexCount };
 }
 
 // Targeted domain check - searches ENTIRE page for links to specific domain
@@ -173,6 +177,7 @@ function analyzeTargetedLinks($, targetDomain) {
   let targetLinksFound = 0;
   let targetNofollowCount = 0;
   let targetDofollowCount = 0;
+  let targetNoindexCount = 0;
 
   $('a[href]').each((_, el) => {
     const href = ($(el).attr('href') || '').trim();
@@ -199,6 +204,9 @@ function analyzeTargetedLinks($, targetDomain) {
         } else {
           targetDofollowCount++;
         }
+        if (rel.includes('noindex')) {
+          targetNoindexCount++;
+        }
       }
       return;
     }
@@ -210,6 +218,9 @@ function analyzeTargetedLinks($, targetDomain) {
         targetNofollowCount++;
       } else {
         targetDofollowCount++;
+      }
+      if (rel.includes('noindex')) {
+        targetNoindexCount++;
       }
     }
   });
@@ -249,11 +260,14 @@ function analyzeTargetedLinks($, targetDomain) {
         } else {
           targetDofollowCount++;
         }
+        if (rel.includes('noindex')) {
+          targetNoindexCount++;
+        }
       }
     }
   });
 
-  return { targetLinksFound, targetNofollowCount, targetDofollowCount };
+  return { targetLinksFound, targetNofollowCount, targetDofollowCount, targetNoindexCount };
 }
 
 async function checkFollowStatus(url, targetDomain) {
@@ -307,6 +321,12 @@ async function checkFollowStatus(url, targetDomain) {
       // regardless of page-level nofollow settings
       if (targeted.targetLinksFound === 0) {
         return { url, followStatus: 'No Link Found', indexStatus, source: `No links to ${targetDomain} found on this page` };
+      }
+
+      // Check link-level rel="noindex" on target domain links
+      // If any link to target has rel="noindex", override indexStatus
+      if (targeted.targetNoindexCount > 0 && indexStatus === 'Index Tag') {
+        indexStatus = 'Noindex Tag';
       }
 
       // Links to target domain exist - now check page-level nofollow
@@ -403,6 +423,11 @@ async function checkFollowStatus(url, targetDomain) {
     if (contentContainer) {
       const contentLinks = analyzeLinks($, contentContainer, pageDomain, '');
 
+      // Check link-level rel="noindex" in content area
+      if (contentLinks.noindexCount > 0 && indexStatus === 'Index Tag') {
+        indexStatus = 'Noindex Tag';
+      }
+
       if (contentLinks.totalOutbound > 0) {
         const nofollowPct = (contentLinks.nofollowCount / contentLinks.totalOutbound) * 100;
 
@@ -426,6 +451,11 @@ async function checkFollowStatus(url, targetDomain) {
 
     // Check 5: FALLBACK - Check ALL outbound links
     const allLinks = analyzeLinks($, null, pageDomain, '');
+
+    // Check link-level rel="noindex" in all outbound links
+    if (allLinks.noindexCount > 0 && indexStatus === 'Index Tag') {
+      indexStatus = 'Noindex Tag';
+    }
 
     if (allLinks.totalOutbound > 0) {
       const nofollowPct = (allLinks.nofollowCount / allLinks.totalOutbound) * 100;
