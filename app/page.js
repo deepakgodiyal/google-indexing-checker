@@ -1259,7 +1259,7 @@ export default function Home() {
             <span className="check-options-label">Select checks:</span>
             <label className="check-option">
               <input type="checkbox" checked={checkIndex} onChange={(e) => setCheckIndex(e.target.checked)} disabled={isChecking} />
-              <span className="check-option-text">Index Check</span>
+              <span className="check-option-text">Google Index Check</span>
             </label>
             <label className="check-option">
               <input type="checkbox" checked={checkFollow} onChange={(e) => setCheckFollow(e.target.checked)} disabled={isChecking} />
