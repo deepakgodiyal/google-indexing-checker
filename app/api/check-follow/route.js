@@ -61,7 +61,12 @@ function getRandomUserAgent() {
 
 function getDomain(url) {
   try {
-    return new URL(url).hostname.replace('www.', '');
+    // Add protocol if missing so URL parsing works
+    let normalizedUrl = url;
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+    return new URL(normalizedUrl).hostname.replace('www.', '');
   } catch {
     return '';
   }
