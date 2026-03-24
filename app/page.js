@@ -1030,6 +1030,7 @@ export default function Home() {
       status: checkIndex ? 'Checking...' : '-',
       statusCode: checkStatus ? 'Checking...' : '-',
       followStatus: checkFollow ? 'Checking...' : '-',
+      indexStatus: checkIndexMeta ? 'Checking...' : '-',
     }));
     setResults(initialResults);
 
@@ -1061,8 +1062,7 @@ export default function Home() {
               ...updatedResults[i + idx],
               status: result.status,
               redirectInfo: result.redirectInfo || { statusCodes: [], finalUrl: null, redirectCount: 0, isRedirected: false },
-              statusCode: statusLabel,
-              statusCategory: getStatusCategory(finalStatusCode),
+              ...(checkStatus ? { statusCode: statusLabel, statusCategory: getStatusCategory(finalStatusCode) } : {}),
             };
           });
         } catch (err) {
@@ -1108,14 +1108,17 @@ export default function Home() {
     }
 
     // PHASE 3: Before Follow check - set N/A for non-200 URLs and initialize indexStatus
-    if (checkFollow) {
+    if (checkFollow || checkIndexMeta) {
       updatedResults.forEach((r, idx) => {
         const sc = r.statusCode || '';
         if (!sc.startsWith('200') && sc !== '-' && sc !== 'Checking...') {
-          updatedResults[idx] = { ...updatedResults[idx], followStatus: 'N/A', indexStatus: 'N/A' };
+          updatedResults[idx] = {
+            ...updatedResults[idx],
+            ...(checkFollow ? { followStatus: 'N/A' } : {}),
+            ...(checkIndexMeta ? { indexStatus: 'N/A' } : {}),
+          };
         } else {
-          // Initialize indexStatus to Checking for URLs that will be checked
-          if (!updatedResults[idx].indexStatus) {
+          if (checkIndexMeta && !updatedResults[idx].indexStatus) {
             updatedResults[idx] = { ...updatedResults[idx], indexStatus: 'Checking...' };
           }
         }
@@ -1146,7 +1149,7 @@ export default function Home() {
                 updatedResults[i + originalIdx] = {
                   ...updatedResults[i + originalIdx],
                   followStatus: result.followStatus,
-                  indexStatus: result.indexStatus || 'N/A',
+                  ...(checkIndexMeta ? { indexStatus: result.indexStatus || 'N/A' } : {}),
                 };
               }
             });
