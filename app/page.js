@@ -419,7 +419,7 @@ function ResultsTable({ results, filter, setFilter, onRecheckIndex, onRecheckSta
             <tr>
               <th style={{width:'30px'}}>#</th>
               <th style={{width:'28%'}}>URL</th>
-              <th style={{whiteSpace:'nowrap'}}>Index on Google</th>
+              <th style={{whiteSpace:'nowrap'}}>Indexed On Google</th>
               <th style={{whiteSpace:'nowrap'}}>Status Code</th>
               <th style={{whiteSpace:'nowrap'}}>Follow/Nofollow</th>
               <th style={{whiteSpace:'nowrap'}}>Index/Noindex</th>
@@ -1167,6 +1167,48 @@ export default function Home() {
       }
     }
 
+    // PHASE 3b: Index/Noindex check when only checkIndexMeta is selected (without checkFollow)
+    if (checkIndexMeta && !checkFollow) {
+      setProgress({ current: 0, total: urlList.length, phase: 'Checking index/noindex status...' });
+      for (let i = 0; i < urlList.length; i += BATCH_SIZE) {
+        const batch = urlList.slice(i, i + BATCH_SIZE);
+        const urlsToCheck = batch.filter((_, idx) => {
+          const status = updatedResults[i + idx]?.indexStatus;
+          return status === 'Checking...' || (!status && updatedResults[i + idx]?.statusCode !== 'N/A');
+        });
+
+        if (urlsToCheck.length > 0) {
+          try {
+            const response = await fetch('/api/check-follow', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ urls: urlsToCheck, targetDomain }),
+            });
+            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+            const data = await response.json();
+            data.results.forEach((result, resultIdx) => {
+              const originalIdx = batch.indexOf(urlsToCheck[resultIdx]);
+              if (originalIdx !== -1) {
+                updatedResults[i + originalIdx] = {
+                  ...updatedResults[i + originalIdx],
+                  indexStatus: result.indexStatus || 'N/A',
+                };
+              }
+            });
+          } catch (err) {
+            batch.forEach((url, idx) => {
+              if (updatedResults[i + idx]?.indexStatus === 'Checking...') {
+                updatedResults[i + idx] = { ...updatedResults[i + idx], indexStatus: 'N/A' };
+              }
+            });
+          }
+        }
+        setResults([...updatedResults]);
+        setProgress({ current: Math.min(i + BATCH_SIZE, urlList.length), total: urlList.length, phase: 'Checking index/noindex status...' });
+        if (i + BATCH_SIZE < urlList.length) await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
     // PHASE 4: Client-side fallback for "Error" and "No Link Found" results
     // Some sites (LinkedIn, csfactor) need JavaScript to render links
     // Browser can execute JS, so retry these from client-side via CORS proxy
@@ -1261,19 +1303,19 @@ export default function Home() {
           <div className="check-options">
             <span className="check-options-label">Select checks:</span>
             <label className="check-option">
-              <input type="checkbox" checked={checkIndex} onChange={(e) => setCheckIndex(e.target.checked)} disabled={isChecking} />
-              <span className="check-option-text">Google Index Check</span>
+              <input type="checkbox" checked={checkIndex} onChange={(e) => { setCheckIndex(e.target.checked); setError(''); }} disabled={isChecking} />
+              <span className="check-option-text">Indexed On Google</span>
             </label>
             <label className="check-option">
-              <input type="checkbox" checked={checkFollow} onChange={(e) => setCheckFollow(e.target.checked)} disabled={isChecking} />
-              <span className="check-option-text">Dofollow/Nofollow</span>
-            </label>
-            <label className="check-option">
-              <input type="checkbox" checked={checkStatus} onChange={(e) => setCheckStatus(e.target.checked)} disabled={isChecking} />
+              <input type="checkbox" checked={checkStatus} onChange={(e) => { setCheckStatus(e.target.checked); setError(''); }} disabled={isChecking} />
               <span className="check-option-text">Status Code</span>
             </label>
             <label className="check-option">
-              <input type="checkbox" checked={checkIndexMeta} onChange={(e) => setCheckIndexMeta(e.target.checked)} disabled={isChecking} />
+              <input type="checkbox" checked={checkFollow} onChange={(e) => { setCheckFollow(e.target.checked); setError(''); }} disabled={isChecking} />
+              <span className="check-option-text">Dofollow/Nofollow</span>
+            </label>
+            <label className="check-option">
+              <input type="checkbox" checked={checkIndexMeta} onChange={(e) => { setCheckIndexMeta(e.target.checked); setError(''); }} disabled={isChecking} />
               <span className="check-option-text">Index/Noindex</span>
             </label>
           </div>
