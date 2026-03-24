@@ -1000,7 +1000,7 @@ export default function Home() {
   const handleCheck = useCallback(async () => {
     setError('');
 
-    if (!checkIndex && !checkFollow && !checkStatus) {
+    if (!checkIndex && !checkFollow && !checkStatus && !checkIndexMeta) {
       setError('Please select at least one check type.');
       return;
     }
