@@ -477,7 +477,7 @@ async function checkFollowStatus(url, targetDomain) {
       };
     }
 
-    return { url, followStatus: 'Dofollow', indexStatus, source: 'No outbound links found (default dofollow)' };
+    return { url, followStatus: 'No Link Found', indexStatus, source: 'No outbound links found on this page' };
   } catch (error) {
     if (error.name === 'AbortError' || error.name === 'TimeoutError') {
       return { url, followStatus: 'Error', indexStatus: 'N/A', detail: 'Site not accessible from server' };
